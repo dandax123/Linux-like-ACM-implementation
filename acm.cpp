@@ -7,7 +7,7 @@ using namespace std;
 void giveAllAdminsUserPermission(int newIndex, struct system *mySystem);
 string convertPermissionIntToString(int permit);
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem );
-int authUserId;
+int authUserId = -1;
 struct user {
 	string userName;
 	string password;
@@ -105,11 +105,11 @@ void addUserToSystem (struct system *mySystem) {
 	
 	int newIndex = ++mySystem->myUsers.currentUserIndex;
 	string isAdmin;
-	cout<<"Enter the user Name \n";
+	cout<<"Enter the username: ";
 	cin>>mySystem->myUsers.users[newIndex].userName;
-	cout<<"Enter  your password \n";
+	cout<<"Enter  your password: ";
 	cin>>mySystem->myUsers.users[newIndex].password;
-	cout<<"Are you an admin ?(Y/n) \n";
+	cout<<"Are you an admin ?(Y/n):  ";
 	cin>>isAdmin;
 	mySystem->myUsers.users[newIndex].isAdmin = isAdmin == "Y" ? 1 : 0;
 	mySystem->myUsers.users[newIndex].isEnabled = 1;
@@ -271,25 +271,42 @@ void displayUserDetails (struct system *mySystem, int userId){
 	cout<<"User Status: "<< accountStatus<<endl;
 	cout<<"............................................................................."<<endl;
 }
+struct user getCurrentUserDetails (struct system * mySystem) {
+	if(authUserId >= 0){
+		return mySystem->myUsers.users[authUserId];		
+	}
+	else {
+		struct user fakeUser;
+		fakeUser.isEnabled = 0;
+		fakeUser.isAdmin = 0;
+		return fakeUser;
+	}
+		
+}
 void userLogin (struct system *mySystem){
-	
 	cout<<"User Login "<<endl;
 	string userName, password;
-	cout<<"Enter the user name "<<endl;
+	cout<<"Enter the user name: ";
 	cin>>userName;
-	cout<<"Enter the password of the user"<<endl;
+	cout<<"Enter the password: ";
 	cin>>password;
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
 	bool isLoggedIn = false;
 	for(i=0; i< currIndex+1; i++){
-		if(mySystem->myUsers.users[i].password == password){
+		if(mySystem->myUsers.users[i].password == password && mySystem->myUsers.users[i].userName == userName){
 			isLoggedIn = true;
 			authUserId = i;
+
 		}
 	}
-	cout<<"login successful"<<endl;
-	displayUserDetails(mySystemPointer, authUserId);
+	string loggedinState = isLoggedIn ? "login successful" : "login failed. Wrong username or password";
+	cout<<endl;
+	cout<<loggedinState<<endl;
+	if(isLoggedIn){
+		displayUserDetails(mySystemPointer, authUserId);	
+	}
+	
 	
 }
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem ){
@@ -301,6 +318,9 @@ void addNewUserPermssionToObject (string permission, string currentUserName, int
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userName = currentUserName;
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userId = getIdFromSystemName(mySystemPointer, "users", currentUserName);
 }
+void logout (){
+	authUserId = -1;
+}
 
 //int[] string 
 
@@ -309,11 +329,51 @@ void addNewUserPermssionToObject (string permission, string currentUserName, int
 int main (){
 
 	cout<<"Welcome to the system"<<endl;
-	cout<<"Create a new User Account"<<endl;
+	cout<<"Create a new Default Account"<<endl;
 	addUserToSystem(mySystemPointer);
-	cout<<endl;
-	userLogin(mySystemPointer);
-	cout<<endl;
+
+	
+	int action1 = 1;
+	while(action1 > 0){
+		cout<<"1. Login"<<endl;
+		cout<<"2. Logout"<<endl;
+		cout<<"0. Quit"<<endl;
+		cin>>action1;
+		if(action1 <= 0){
+			exit(1);
+		}
+		if(action1 == 1){
+			int action2 = 1;
+			userLogin(mySystemPointer);
+			struct user currentUser = getCurrentUserDetails(mySystemPointer);
+			if(currentUser.isAdmin && authUserId >=0){
+				while(action2 > 0){
+					cout<<"Admin Menu"<<endl;
+					cout<<"1. Add new user/group"<<endl;
+					cout<<"2. Disable/Enable a user/group"<<endl;
+					cout<<"3. Add/Delete user to/grom group"<<endl;
+					cout<<"4. Grant/Revoke users/groups rights"<<endl;
+					cout<<"0. Return"<<endl;
+					cin>>action2;
+					if(action2 == 1){
+						addUserToSystem(mySystemPointer);
+					}
+					if(action2 == 0){
+						break;
+					}
+				}
+				
+			}
+			else {
+				
+			}
+			//handle other functionality
+		}
+
+	}
+	
+	
+	
 	//addGroupToSystem(mySystemPointer);
 	//displayAllUsers(mySystemPointer);
 	//enableOperationForUser(mySystemPointer);
