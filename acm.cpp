@@ -201,10 +201,16 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type, int operat
 void displayAllUsers (struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
+	cout<<"............................................................................."<<endl;
+	cout<<"Id \t Users \t Account Type \t Account Status"<<endl;	
 	for(i=0; i< currIndex+1; i++){
-		cout<<"the user name is  "<<mySystem->myUsers.users[i].userName;
-		
+		if(i == authUserId)continue;
+		string accountType =  mySystem->myUsers.users[i].isAdmin == 1 ? "Admin" : "User";
+		string accountStatus =  mySystem->myUsers.users[i].isEnabled == 1 ? "Active" : "InActive";
+		cout<<i+1<<"\t "<<mySystem->myUsers.users[i].userName<<"\t "<<accountType<<"\t \t  "<<accountStatus<<endl;	
 	}
+	cout<<"............................................................................."<<endl;
+	cout<<endl;
 }
 
 void enableOperationForUser (struct system *mySystem, string type, string userName,  int operation){
@@ -358,6 +364,12 @@ int main (){
 					if(action2 == 1){
 						addUserToSystem(mySystemPointer);
 					}
+					if(action2 == 2){
+						string actionUserName;
+						displayAllUsers(mySystemPointer);
+						cout<<"Enter user name to enable/disable: ";
+						cin>>actionUserName;
+					}
 					if(action2 == 0){
 						break;
 					}
@@ -373,7 +385,7 @@ int main (){
 	}
 	
 	
-	
+	//continue tmoro
 	//addGroupToSystem(mySystemPointer);
 	//displayAllUsers(mySystemPointer);
 	//enableOperationForUser(mySystemPointer);
