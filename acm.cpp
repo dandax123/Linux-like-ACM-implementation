@@ -4,6 +4,9 @@
 #include <fstream>  
 
 using namespace std;
+void giveAllAdminsUserPermission(int newIndex, struct system *mySystem);
+string convertPermissionIntToString(int permit);
+void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem );
 struct user {
 	string userName;
 	string password;
@@ -19,6 +22,7 @@ struct group {
 
 struct userPermission {
 	string userId;
+	string userName;
 	int canRead;
 	int canWrite;
 	int canExecute;
@@ -27,18 +31,27 @@ struct userPermission {
 
 struct groupPermission {
 	string groupId;
+	string groupName;
+	
 	int canRead;
 	int canWrite;
 	int canExecute;
 };
 
-
+struct userPermits {
+	int currentUserPermission;
+	struct userPermission currentUserPermissions[20];	
+};
+struct groupPermits {
+	int currentGroupPermission;
+	struct groupPermission currentGroupPermissions[20];
+};
 struct object {
 	string objectId;
 	string objectOwner;
 	string objectName;
-	struct userPermission currentUserPermissions[20];
-	struct groupPermission currentGroupPermissions[20];
+	struct userPermits userPermission;
+	struct groupPermits groupPermission;
 };
 struct myUsers {
 	struct user users[100];
@@ -103,6 +116,7 @@ void addUserToSystem (struct system *mySystem) {
 }
 
 void addGroupToSystem(struct system *mySystem){
+	
 	int newIndex = ++mySystem->myGroups.currentGroupIndex;
 	cout<<"Enter the group name"<<endl;
 	cin>>mySystem->myGroups.groups[newIndex].groupName;
@@ -201,14 +215,64 @@ void enableOperationForUser (struct system *mySystem, string type, string userNa
 	}
 }
 
-void createNewObject (struct system *mySystem){
+void createNewObject (struct system *mySystem, string currentUserName){
+	int newIndex = ++mySystem->myObjects.currentObjectIndex;
 	string fileName;
 	cout<<"Input the file name that you want to create"<<endl;
 	cin>>fileName;
 	string filePath = "files/"+fileName; 
  	ofstream file(filePath.c_str());
 	cout<<"The file was created succesfully"<<endl;
+	mySystem->myObjects.objects[newIndex].objectName=fileName;
+	mySystem->myObjects.objects[newIndex].objectId = gen_id();
+	mySystem->myObjects.objects[newIndex].objectOwner = currentUserName;
+	//initializing the defaul permissions for the file
+	giveAllAdminsUserPermission(newIndex, mySystemPointer); //permission for all users
+	addNewUserPermssionToObject(convertPermissionIntToString(7), currentUserName, newIndex, mySystemPointer); // permissions for the curent userName
+	
 }
+
+string convertPermissionIntToString(int permit){
+	string ans = "---";
+	if(permit - 4 >= 0){
+		ans[0]  = '4';
+		permit = permit - 4;
+	}
+	if(permit -  2 >= 0) {
+		ans[1] = '2';
+		permit = permit - 2;
+	}
+	if(permit -1 >= 0 ){
+		ans[2] = '1';
+		permit = permit - 1;
+	}
+	return ans;
+}
+
+void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
+	int currIndex = mySystem->myUsers.currentUserIndex;
+	int i = 0;
+	for(i=0; i< currIndex+1; i++){
+		if(mySystem->myUsers.users[i].isAdmin){
+			addNewUserPermssionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, objectIndex, mySystemPointer);
+		}
+	}
+	
+}
+
+void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem ){
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission =  mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission > 0  ? mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission : -1; 
+	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canRead = permission[0]=='4' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canWrite = permission[1]=='2' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canExecute = permission[2]=='1' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userName = currentUserName;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userId = getIdFromSystemName(mySystemPointer, "users", currentUserName);
+}
+
+//int[] string 
+
+//void writeObject (struct syst)
 
 int main (){
 
@@ -216,7 +280,7 @@ int main (){
 	//addGroupToSystem(mySystemPointer);
 	//displayAllUsers(mySystemPointer);
 	//enableOperationForUser(mySystemPointer);
-	createNewObject(mySystemPointer);
+	//createNewObject(mySystemPointer);
 	return 0;
 }
 
