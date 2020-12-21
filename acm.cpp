@@ -1,6 +1,8 @@
 #include <bits/stdc++.h>
 #include <ctime>
 #include <unistd.h>
+#include <fstream>  
+
 using namespace std;
 struct user {
 	string userName;
@@ -139,7 +141,7 @@ string getIdFromSystemName(struct system *mySystem, string type, string id){
 }
 
 int getIndexFromSystem(struct system *mySystem, string type, string id){
-	int index = 0;
+	int index = -1;
 	if(type== "group"){
 		int currIndex = mySystem->myGroups.currentGroupIndex;
 		for(int i  = 0; i< currIndex + 1; i++){
@@ -164,7 +166,7 @@ int getIndexFromSystem(struct system *mySystem, string type, string id){
 			}
 		}
 	}
-	return index;
+	return index ;
 }
 void enableOrDisableGroupOrUser(struct system *mySystem, string type, int operation, int index){
 	if(type == "group"){
@@ -188,21 +190,33 @@ void displayAllUsers (struct system *mySystem) {
 	}
 }
 
-void enableOperationForUser (struct system *mySystem){
-	string userName;
-	cout<<"Enter the user Name of the user"<<endl;
-	cin>>userName;
-	int index = getIndexFromSystem(mySystemPointer, "users", getIdFromSystemName(mySystemPointer,"users", userName)); 
-	cout<<index;
+void enableOperationForUser (struct system *mySystem, string type, string userName,  int operation){
+	string result = type == "users" ? "User" : "Group";
+	int index = getIndexFromSystem(mySystemPointer, type, getIdFromSystemName(mySystemPointer,type, userName)); 
+	if(index >= 0){
+		enableOrDisableGroupOrUser(mySystemPointer, type, operation, index);
+	}
+	else {
+		cout<<result<<" is not found"<<endl;
+	}
 }
 
+void createNewObject (struct system *mySystem){
+	string fileName;
+	cout<<"Input the file name that you want to create"<<endl;
+	cin>>fileName;
+	string filePath = "files/"+fileName; 
+ 	ofstream file(filePath.c_str());
+	cout<<"The file was created succesfully"<<endl;
+}
 
 int main (){
 
-	addUserToSystem(mySystemPointer);
-	addGroupToSystem(mySystemPointer);
-	displayAllUsers(mySystemPointer);
-	enableOperationForUser(mySystemPointer);
+	//addUserToSystem(mySystemPointer);
+	//addGroupToSystem(mySystemPointer);
+	//displayAllUsers(mySystemPointer);
+	//enableOperationForUser(mySystemPointer);
+	createNewObject(mySystemPointer);
 	return 0;
 }
 
