@@ -337,7 +337,7 @@ int main (){
 	cout<<"Welcome to the system"<<endl;
 	cout<<"Create a new Default Account"<<endl;
 	addUserToSystem(mySystemPointer);
-
+	system("CLS");
 	
 	int action1 = 1;
 	while(action1 > 0){
@@ -363,6 +363,7 @@ int main (){
 					cin>>action2;
 					if(action2 == 1){
 						addUserToSystem(mySystemPointer);
+						system("CLS");
 					}
 					if(action2 == 2){
 						string actionUserName;
@@ -379,6 +380,7 @@ int main (){
 			else {
 				
 			}
+			system("CLS");
 			//handle other functionality
 		}
 
