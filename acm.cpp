@@ -97,6 +97,14 @@ void addUserToSystem (struct system *mySystem) {
 	mySystem->myUsers.users[newIndex].userId = gen_id();
 }
 
+void addGroupToSystem(struct system *mySystem){
+	int newIndex = ++mySystem->myGroups.currentGroupIndex;
+	cout<<"Enter the group name"<<endl;
+	cin>>mySystem->myGroups.groups[newIndex].groupName;
+	mySystem->myGroups.groups[newIndex].isEnabled = 1;
+	mySystem->myGroups.groups[newIndex].groupId = gen_id();
+}
+
 void displayAllUsers (struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
@@ -111,6 +119,7 @@ int main (){
 	struct system mySystem = createNewSystem();
 	struct system *mySystemPointer = &mySystem;
 	addUserToSystem(mySystemPointer);
+	addGroupToSystem(mySystemPointer);
 	displayAllUsers(mySystemPointer);
 	return 0;
 }
