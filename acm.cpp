@@ -7,6 +7,7 @@ using namespace std;
 void giveAllAdminsUserPermission(int newIndex, struct system *mySystem);
 string convertPermissionIntToString(int permit);
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem );
+int authUserId;
 struct user {
 	string userName;
 	string password;
@@ -113,6 +114,8 @@ void addUserToSystem (struct system *mySystem) {
 	mySystem->myUsers.users[newIndex].isAdmin = isAdmin == "Y" ? 1 : 0;
 	mySystem->myUsers.users[newIndex].isEnabled = 1;
 	mySystem->myUsers.users[newIndex].userId = gen_id();
+	cout<<"User added successfully"<<endl;
+	cout<<endl;
 }
 
 void addGroupToSystem(struct system *mySystem){
@@ -259,7 +262,37 @@ void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
 	}
 	
 }
-
+void displayUserDetails (struct system *mySystem, int userId){
+	cout<<"............................................................................."<<endl;
+	cout<<"User Name: "<< mySystem->myUsers.users[userId].userName<<endl;
+	string accountType =  mySystem->myUsers.users[userId].isAdmin == 1 ? "Admin" : "User";
+	string accountStatus =  mySystem->myUsers.users[userId].isEnabled == 1 ? "Active" : "InActive";
+	cout<<"User Account type: "<< accountType<<endl;
+	cout<<"User Status: "<< accountStatus<<endl;
+	cout<<"............................................................................."<<endl;
+}
+void userLogin (struct system *mySystem){
+	
+	cout<<"User Login "<<endl;
+	
+	string userName, password;
+	cout<<"Enter the user name "<<endl;
+	cin>>userName;
+	cout<<"Enter the password of the user"<<endl;
+	cin>>password;
+	int currIndex = mySystem->myUsers.currentUserIndex;
+	int i = 0;
+	bool isLoggedIn = false;
+	for(i=0; i< currIndex+1; i++){
+		if(mySystem->myUsers.users[i].password == password){
+			isLoggedIn = true;
+			authUserId = i;
+		}
+	}
+	cout<<"login successful"<<endl;
+	displayUserDetails(mySystemPointer, authUserId);
+	
+}
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem ){
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission =  mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission > 0  ? mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission : -1; 
 	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission;
@@ -276,7 +309,12 @@ void addNewUserPermssionToObject (string permission, string currentUserName, int
 
 int main (){
 
-	//addUserToSystem(mySystemPointer);
+	cout<<"Welcome to the system"<<endl;
+	cout<<"Create a new User Account"<<endl;
+	addUserToSystem(mySystemPointer);
+	cout<<endl;
+	userLogin(mySystemPointer);
+	
 	//addGroupToSystem(mySystemPointer);
 	//displayAllUsers(mySystemPointer);
 	//enableOperationForUser(mySystemPointer);
