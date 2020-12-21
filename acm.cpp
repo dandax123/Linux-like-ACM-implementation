@@ -274,7 +274,6 @@ void displayUserDetails (struct system *mySystem, int userId){
 void userLogin (struct system *mySystem){
 	
 	cout<<"User Login "<<endl;
-	
 	string userName, password;
 	cout<<"Enter the user name "<<endl;
 	cin>>userName;
@@ -314,7 +313,7 @@ int main (){
 	addUserToSystem(mySystemPointer);
 	cout<<endl;
 	userLogin(mySystemPointer);
-	
+	cout<<endl;
 	//addGroupToSystem(mySystemPointer);
 	//displayAllUsers(mySystemPointer);
 	//enableOperationForUser(mySystemPointer);
