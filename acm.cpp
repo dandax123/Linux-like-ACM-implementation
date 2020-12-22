@@ -7,7 +7,6 @@ using namespace std;
 void giveAllAdminsUserPermission(int newIndex, struct system *mySystem);
 string convertPermissionIntToString(int permit);
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem );
-int authUserId = -1;
 struct user {
 	string userName;
 	string password;
@@ -70,6 +69,7 @@ struct system {
 	struct myUsers myUsers;
 	struct myGroups myGroups;
 	struct myObjects myObjects;
+	int authUserId;
 };
 
 struct system createNewSystem(){
@@ -77,6 +77,7 @@ struct system createNewSystem(){
 	mySystem.myUsers.currentUserIndex = -1;
 	mySystem.myGroups.currentGroupIndex = -1;
 	mySystem.myObjects.currentObjectIndex = -1;
+	mySystem.authUserId = -1;
 	return mySystem;
 }
 struct system mySystem = createNewSystem();
@@ -204,7 +205,7 @@ void displayAllUsers (struct system *mySystem) {
 	cout<<"............................................................................."<<endl;
 	cout<<"Id \t Users \t Account Type \t Account Status"<<endl;	
 	for(i=0; i< currIndex+1; i++){
-		if(i == authUserId)continue;
+		if(i == mySystem->authUserId)continue;
 		string accountType =  mySystem->myUsers.users[i].isAdmin == 1 ? "Admin" : "User";
 		string accountStatus =  mySystem->myUsers.users[i].isEnabled == 1 ? "Active" : "InActive";
 		cout<<i+1<<"\t "<<mySystem->myUsers.users[i].userName<<"\t "<<accountType<<"\t \t  "<<accountStatus<<endl;	
@@ -278,8 +279,8 @@ void displayUserDetails (struct system *mySystem, int userId){
 	cout<<"............................................................................."<<endl;
 }
 struct user getCurrentUserDetails (struct system * mySystem) {
-	if(authUserId >= 0){
-		return mySystem->myUsers.users[authUserId];		
+	if(mySystem->authUserId >= 0){
+		return mySystem->myUsers.users[mySystem->authUserId];		
 	}
 	else {
 		struct user fakeUser;
@@ -302,7 +303,7 @@ void userLogin (struct system *mySystem){
 	for(i=0; i< currIndex+1; i++){
 		if(mySystem->myUsers.users[i].password == password && mySystem->myUsers.users[i].userName == userName){
 			isLoggedIn = true;
-			authUserId = i;
+			mySystem->authUserId = i;
 
 		}
 	}
@@ -310,7 +311,7 @@ void userLogin (struct system *mySystem){
 	cout<<endl;
 	cout<<loggedinState<<endl;
 	if(isLoggedIn){
-		displayUserDetails(mySystemPointer, authUserId);	
+		displayUserDetails(mySystemPointer, mySystem->authUserId);	
 	}
 	
 	
@@ -324,8 +325,11 @@ void addNewUserPermssionToObject (string permission, string currentUserName, int
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userName = currentUserName;
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userId = getIdFromSystemName(mySystemPointer, "users", currentUserName);
 }
-void logout (){
-	authUserId = -1;
+void logout (struct system *mySystem){
+	mySystem->authUserId = -1;
+	cout<<"............................................................................."<<endl;
+	cout<<"logout successfull"<<endl;
+	cout<<"............................................................................."<<endl;
 }
 
 //int[] string 
@@ -342,7 +346,9 @@ int main (){
 	int action1 = 1;
 	while(action1 > 0){
 		cout<<"1. Login"<<endl;
-		cout<<"2. Logout"<<endl;
+		if(mySystem.authUserId >=0){
+			cout<<"2. Logout"<<endl;		
+		}
 		cout<<"0. Quit"<<endl;
 		cin>>action1;
 		if(action1 <= 0){
@@ -352,7 +358,7 @@ int main (){
 			int action2 = 1;
 			userLogin(mySystemPointer);
 			struct user currentUser = getCurrentUserDetails(mySystemPointer);
-			if(currentUser.isAdmin && authUserId >=0){
+			if(currentUser.isAdmin && mySystem.authUserId >=0){
 				while(action2 > 0){
 					cout<<"Admin Menu"<<endl;
 					cout<<"1. Add new user/group"<<endl;
@@ -382,6 +388,9 @@ int main (){
 			}
 			system("CLS");
 			//handle other functionality
+		}
+		if(action1 == 2 && mySystem.authUserId >= 0){
+			logout(mySystemPointer);
 		}
 
 	}
