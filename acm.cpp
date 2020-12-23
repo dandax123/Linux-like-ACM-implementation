@@ -146,14 +146,12 @@ void addGroupToSystem(struct system *mySystem){
 void displayAvailableUsers  (struct system *mySystem, int groupIndex){
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int groupUserIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
-	cout<< groupUserIndex<<endl;
 	struct user freeUsers[20];
 	int x = -1;
 	for(int i=0; i<currIndex + 1; i++){
 		if(i == mySystem->authUserId) continue;
 		bool isAmong = false;
 		for(int j = 0; j< groupUserIndex+1; j++){
-//			cout<<mySystem->myUsers.users[i].userId <<" "<<mySystem->myGroups.groups[groupIndex].groupUsers.users[j].userId<<endl;
 			if(mySystem->myUsers.users[i].userId == mySystem->myGroups.groups[groupIndex].groupUsers.users[j].userId) isAmong = true;
 		}
 		if(!isAmong){
@@ -161,7 +159,7 @@ void displayAvailableUsers  (struct system *mySystem, int groupIndex){
 		}
 	}
 	cout<<"............................................................................."<<endl;
-	if(x > 0 ){
+	if(x >= 0 ){
 		cout<<"Id \t Users \t Account Type \t Account Status"<<endl;	
 		for(int i=0; i< x+1; i++){
 			string accountType =  freeUsers[i].isAdmin == 1 ? "Admin" : "User";
@@ -181,13 +179,20 @@ void addUserToGroup(struct system *mySystem, int groupIndex){
 		cout<<"List of available Users"<<endl;
 		displayAvailableUsers(mySystemPointer, groupIndex);
 		string userName;
-		cout<<"Enter the Id or the username of the user"<<endl;
+		cout<<"Enter  the username of the user"<<endl;
 		cin>>userName;
 		struct user newUser = getUserFromIdOrUserName(mySystemPointer, userName);
-		int newIndex = ++mySystem->myGroups.groups[newIndex].groupUsers.currentUserIndex;
-		mySystem->myGroups.groups[groupIndex].groupUsers.users[newIndex] = newUser;
-		cout<<"Succesfully added!"<<endl;
-		listGroupUser(mySystemPointer, groupIndex);	
+		if(newUser.isEnabled){
+			int newIndex = ++mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
+			mySystem->myGroups.groups[groupIndex].groupUsers.users[newIndex] = newUser;			
+			cout<<"Succesfully added!"<<endl;
+			listGroupUser(mySystemPointer, groupIndex);
+		}
+		else{
+			cout<<"User doesn't exist or is disabled"<<endl;
+			return ;
+		}
+			
 	}
 	else{
 		cout<<"No Possible user to add"<<endl;
@@ -396,25 +401,19 @@ struct user getCurrentUserDetails (struct system * mySystem) {
 	}		
 }
 struct user getUserFromIdOrUserName (struct system *mySystem, string userNameOrId){
-	int index = 0;
-	if(isNumber(userNameOrId)){
-		stringstream newString(userNameOrId);
-		newString >> index;
-	}
-	else index = getIndexFromSystemName(mySystemPointer, "users", userNameOrId);
-	return mySystem->myUsers.users[isNumber(userNameOrId)  ? index -1 : index];
+	int index = getIndexFromSystemName(mySystemPointer, "users", userNameOrId);
+	return mySystem->myUsers.users[index];
 }
 void listGroupUser (struct system *mySystem, int groupIndex){
 	int groupUserIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
-	if(groupUserIndex > 0){
+	if(groupUserIndex >= 0){
 		cout<<"Users in the group"<<endl;
 		cout<<"............................................................................."<<endl;
-		cout<<"Id \t Users \t Account Type \t Account Status"<<endl;	
+		cout<<"Users \t Account Type \t Account Status"<<endl;	
 		for(int i=0; i< groupUserIndex+1; i++){
-			if(i == mySystem->authUserId)continue;
 			string accountType =  mySystem->myGroups.groups[groupIndex].groupUsers.users[i].isAdmin == 1 ? "Admin" : "User";
 			string accountStatus =  mySystem->myGroups.groups[groupIndex].groupUsers.users[i].isEnabled == 1 ? "Active" : "InActive";
-			cout<<i+1<<"\t "<<mySystem->myGroups.groups[groupIndex].groupUsers.users[i].userName<<"\t "<<accountType<<"\t \t  "<<accountStatus<<endl;	
+			cout<<mySystem->myGroups.groups[groupIndex].groupUsers.users[i].userName<<"\t "<<accountType<<"\t \t  "<<accountStatus<<endl;	
 		}
 		cout<<"............................................................................."<<endl;		
 	}
@@ -535,11 +534,11 @@ int main (){
 						cin>>index;
 						string operation;
 						cout<<"Current users in the group"<<endl;
-						listGroupUser(mySystemPointer, index);
+						listGroupUser(mySystemPointer, index-1);
 						cout<<"Do you want to add or delete a user (add/delete) ?"<<endl;
 						cin>>operation;
 						if(operation == "add"){	
-							addUserToGroup(mySystemPointer, index);
+							addUserToGroup(mySystemPointer, index-1);
 							
 						}
 						else if (operation == "delete"){
