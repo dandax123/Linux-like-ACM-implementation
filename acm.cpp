@@ -11,6 +11,7 @@ void displayAllUsers (struct system *mySystem);
 void displayAllGroups (struct system *mySystem);
 struct user getUserFromIdOrUserName (struct system *mySystem, string userNameOrId);
 void listGroupUser (struct system *mySystem, int groupIndex);
+int getIndexOfGroupUser(struct system *mySystem, int groupIndex, string userName);
 struct user {
 	string userName;
 	string password;
@@ -200,9 +201,38 @@ void addUserToGroup(struct system *mySystem, int groupIndex){
 	}
 	
 }
+void deleteUserFromGroup(struct system *mySystem, int groupIndex){
+		struct myUsers newSetofUsers;
+		int allIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
+		if(allIndex < 0){
+			cout<<"No users in this group"<<endl;
+			return ;
+		}
+		string userName;
+		cout<<"Enter the username to delete"<<endl;
+		cin>>userName;
+		int index = getIndexOfGroupUser(mySystemPointer, groupIndex, userName);
+		for(int i=0; i<index; i++){
+			newSetofUsers.users[i] = mySystem->myGroups.groups[groupIndex].groupUsers.users[i];
+		}
+		for(int i=index; i<allIndex+1; i++){
+			newSetofUsers.users[i] = mySystem->myGroups.groups[groupIndex].groupUsers.users[i+1];
+		}
+		newSetofUsers.currentUserIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex-1;
+		mySystem->myGroups.groups[groupIndex].groupUsers = newSetofUsers;
+		cout<<"Deleted user sucessfully"<<endl;
+		listGroupUser(mySystemPointer, groupIndex);		
+}
 
 
-
+int getIndexOfGroupUser(struct system *mySystem, int groupIndex, string userName){
+	int currIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
+	for(int i  = 0; i< currIndex + 1; i++){
+		if(mySystem->myGroups.groups[groupIndex].groupUsers.users[i].userName == userName){
+			return  i;
+		}
+	}
+}
 int getIndexFromSystem(struct system *mySystem, string type, string id){
 	int index = -1;
 	if(type== "groups"){
@@ -556,7 +586,7 @@ int main (){
 							
 						}
 						else if (operation == "delete"){
-//							cout<<""
+							deleteUserFromGroup(mySystemPointer, index-1);
 						}
 						else break;
 					}
@@ -582,8 +612,6 @@ int main (){
 			else {
 				
 			}
-
-			//handle other functionality
 		}
 		if(action1 == 2 && mySystem.authUserId >= 0){
 			logout(mySystemPointer);
@@ -592,12 +620,7 @@ int main (){
 
 	}
 	
-	
-	//continue tmoro
-	//addGroupToSystem(mySystemPointer);
-	//displayAllUsers(mySystemPointer);
-	//enableOperationForUser(mySystemPointer);
-	//createNewObject(mySystemPointer);
+
 	return 0;
 }
 
