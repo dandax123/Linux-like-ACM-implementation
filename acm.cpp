@@ -205,10 +205,10 @@ void addUserToGroup(struct system *mySystem, int groupIndex){
 
 int getIndexFromSystem(struct system *mySystem, string type, string id){
 	int index = -1;
-	if(type== "group"){
+	if(type== "groups"){
 		int currIndex = mySystem->myGroups.currentGroupIndex;
 		for(int i  = 0; i< currIndex + 1; i++){
-			if(mySystem->myGroups.groups[i].groupId == id){
+			if(mySystem->myGroups.groups[i].groupName == id){
 				index = i;
 			}
 		}
@@ -232,23 +232,43 @@ int getIndexFromSystem(struct system *mySystem, string type, string id){
 	return index ;
 }
 
-void deleteUserFromSystem(struct system *mySystem){
+void deleteFromSystem(struct system *mySystem, string type){
 	string userName;
-	cout<<"Enter the user name you want to delete"<<endl;
+	string operation = type=="groups" ? "group": "user";
+	cout<<"Enter the " <<operation<<" name you want to delete"<<endl;
 	cin>>userName;
-	struct myUsers newSetofUsers;
-	int allIndex = mySystem->myUsers.currentUserIndex;
-	int index = getIndexFromSystem(mySystemPointer,"users", userName);
-	for(int i=0; i<index; i++){
-		newSetofUsers.users[i] = mySystem->myUsers.users[i];
+	if(type == "groups"){
+		struct myGroups newSetofGroups;
+		int allIndex = mySystem->myGroups.currentGroupIndex;
+		int index = getIndexFromSystem(mySystemPointer,"groups", userName);
+		for(int i=0; i<index; i++){
+			newSetofGroups.groups[i] = mySystem->myGroups.groups[i];
+			
+		}
+		for(int i=index; i<allIndex+1; i++){
+			newSetofGroups.groups[i] = mySystem->myGroups.groups[i+1];
+		}
+		newSetofGroups.currentGroupIndex = mySystem->myGroups.currentGroupIndex-1;
+		mySystem->myGroups = newSetofGroups;
+		cout<<"Deleted group sucessfully"<<endl;
+		displayAllGroups(mySystemPointer);
 	}
-	for(int i=index; i<allIndex+1; i++){
-		newSetofUsers.users[i] = mySystem->myUsers.users[i+1];
+	else if (type == "users"){
+		struct myUsers newSetofUsers;
+		int allIndex = mySystem->myUsers.currentUserIndex;
+		int index = getIndexFromSystem(mySystemPointer,"users", userName);
+		for(int i=0; i<index; i++){
+			newSetofUsers.users[i] = mySystem->myUsers.users[i];
+		}
+		for(int i=index; i<allIndex+1; i++){
+			newSetofUsers.users[i] = mySystem->myUsers.users[i+1];
+		}
+		newSetofUsers.currentUserIndex = mySystem->myUsers.currentUserIndex-1;
+		mySystem->myUsers = newSetofUsers;
+		cout<<"Deleted user sucessfully"<<endl;
+		displayAllUsers(mySystemPointer);		
 	}
-	newSetofUsers.currentUserIndex = mySystem->myUsers.currentUserIndex-1;
-	mySystem->myUsers = newSetofUsers;
-	cout<<"Deleted users sucessfully"<<endl;
-	displayAllUsers(mySystemPointer);
+	else return ;
 }
 void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 	int currGroupIndex = mySystem->myGroups.currentGroupIndex;
@@ -544,8 +564,17 @@ int main (){
 						break;
 					}
 					if(action2 == 5){
-						displayAllUsers(mySystemPointer);
-						deleteUserFromSystem(mySystemPointer);
+						string type;
+						cout<<"Do you want to delete a group or user (group/user)"<<endl;
+						cin>>type;
+						if(type =="group"){
+							displayAllGroups(mySystemPointer);
+						}
+						else if(type=="user"){
+							displayAllUsers(mySystemPointer);
+						}
+						else break;
+						deleteFromSystem(mySystemPointer, type=="group" ? "groups": "users");
 					}
 				}
 				
