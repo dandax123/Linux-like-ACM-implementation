@@ -14,9 +14,14 @@ struct user {
 	string userId;
 	int isEnabled;
 };
+struct myUsers {
+	struct user users[100];
+	int currentUserIndex;
+};
 struct group {
 	string groupId;
 	string groupName;
+	struct myUsers groupUsers;
 	int isEnabled;
 };
 
@@ -53,10 +58,7 @@ struct object {
 	struct userPermits userPermission;
 	struct groupPermits groupPermission;
 };
-struct myUsers {
-	struct user users[100];
-	int currentUserIndex;
-};
+
 struct myGroups {
 	struct group groups[100];
 	int currentGroupIndex;
@@ -186,15 +188,40 @@ int getIndexFromSystem(struct system *mySystem, string type, string id){
 	}
 	return index ;
 }
-void enableOrDisableGroupOrUser(struct system *mySystem, string type, int operation, int index){
-	if(type == "group"){
-		mySystem->myGroups.groups[index].isEnabled = operation;	
+void enableOrDisableGroupOrUser(struct system *mySystem, string type){
+	int currGroupIndex = mySystem->myGroups.currentGroupIndex;
+	int currUserIndex = mySystem->myUsers.currentUserIndex;
+	string enOperation;
+
+	if(type == "group" && currGroupIndex != -1 ){
+		int index;
+		string operation;
+		cout<<"Enter the "<<type<<" Id"<<endl;
+		cin>>index;
+		cout<<"Enter the operation (disable/enable)"<<endl;
+		cin>>operation;
+		enOperation = operation;
+		mySystem->myGroups.groups[index-1].isEnabled = operation=="enable" ? 1 : 0;	
+	}
+	else if(type == "user" && currUserIndex > 0 ){
+		int index;
+		string operation;
+		cout<<"Enter the "<<type<<" Id"<<endl;
+		cin>>index;
+		cout<<"Enter the operation (disable/enable)"<<endl;
+		cin>>operation;
+		enOperation = operation;
+		mySystem->myUsers.users[index-1].isEnabled = operation=="enable" ? 1 : 0;	
+	}
+	
+	if(currGroupIndex != -1 || currUserIndex > 0 ){
+		string result = enOperation == "enable" ? "Enabled" : "Disabled";
+		cout<< "Successfully "<<result<<endl;	
 	}
 	else{
-		mySystem->myUsers.users[index].isEnabled = operation;	
+		return ;
 	}
-	string result = operation == 1 ? "Enabled" : "Disabled";
-	cout<< "Successfully "<<result<<endl;
+
 }
 
 
@@ -203,27 +230,40 @@ void displayAllUsers (struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
 	cout<<"............................................................................."<<endl;
-	cout<<"Id \t Users \t Account Type \t Account Status"<<endl;	
-	for(i=0; i< currIndex+1; i++){
-		if(i == mySystem->authUserId)continue;
-		string accountType =  mySystem->myUsers.users[i].isAdmin == 1 ? "Admin" : "User";
-		string accountStatus =  mySystem->myUsers.users[i].isEnabled == 1 ? "Active" : "InActive";
-		cout<<i+1<<"\t "<<mySystem->myUsers.users[i].userName<<"\t "<<accountType<<"\t \t  "<<accountStatus<<endl;	
+	if(currIndex > 0 ){
+		cout<<"Id \t Users \t Account Type \t Account Status"<<endl;	
+		for(i=0; i< currIndex+1; i++){
+			if(i == mySystem->authUserId)continue;
+			string accountType =  mySystem->myUsers.users[i].isAdmin == 1 ? "Admin" : "User";
+			string accountStatus =  mySystem->myUsers.users[i].isEnabled == 1 ? "Active" : "InActive";
+			cout<<i+1<<"\t "<<mySystem->myUsers.users[i].userName<<"\t "<<accountType<<"\t \t  "<<accountStatus<<endl;	
+		}	
+	}
+	else{
+		cout<<"No currents users"<<endl;
+	}
+	cout<<"............................................................................."<<endl;
+	cout<<endl;
+}
+void displayAllGroups(struct system *mySystem){
+	int currIndex = mySystem->myGroups.currentGroupIndex;
+	int i = 0;
+	cout<<"............................................................................."<<endl;
+	if(currIndex == -1){
+		cout<<"No currents Groups"<<endl;
+	}
+	else{
+		cout<<"Id \t Groups \t Group Status"<<endl;	
+		for(i=0; i< currIndex+1; i++){
+			string accountStatus =  mySystem->myGroups.groups[i].isEnabled == 1 ? "Active" : "InActive";
+			cout<<i+1<<"\t "<<mySystem->myGroups.groups[i].groupName<<"\t  "<<accountStatus<<endl;	
+		}
 	}
 	cout<<"............................................................................."<<endl;
 	cout<<endl;
 }
 
-void enableOperationForUser (struct system *mySystem, string type, string userName,  int operation){
-	string result = type == "users" ? "User" : "Group";
-	int index = getIndexFromSystem(mySystemPointer, type, getIdFromSystemName(mySystemPointer,type, userName)); 
-	if(index >= 0){
-		enableOrDisableGroupOrUser(mySystemPointer, type, operation, index);
-	}
-	else {
-		cout<<result<<" is not found"<<endl;
-	}
-}
+
 
 void createNewObject (struct system *mySystem, string currentUserName){
 	int newIndex = ++mySystem->myObjects.currentObjectIndex;
@@ -368,14 +408,28 @@ int main (){
 					cout<<"0. Return"<<endl;
 					cin>>action2;
 					if(action2 == 1){
-						addUserToSystem(mySystemPointer);
+						string reply;
+						cout<<"Do you want to add group/user ? (user/group)"<<endl;
+						cin>>reply;
+						if(reply == "group"){
+							addGroupToSystem(mySystemPointer);
+						}
+						else{
+							addUserToSystem(mySystemPointer);	
+						}
 						system("CLS");
 					}
 					if(action2 == 2){
-						string actionUserName;
-						displayAllUsers(mySystemPointer);
-						cout<<"Enter user name to enable/disable: ";
-						cin>>actionUserName;
+						string reply;
+						cout<<"Do you want to enable/disable (group/user)"<<endl;
+						cin>>reply;
+						if(reply == "group"){
+							displayAllGroups(mySystemPointer);
+						}
+						else{
+							displayAllUsers(mySystemPointer);
+						}
+						enableOrDisableGroupOrUser(mySystemPointer, reply);
 					}
 					if(action2 == 0){
 						break;
