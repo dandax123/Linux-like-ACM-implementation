@@ -7,6 +7,8 @@ using namespace std;
 void giveAllAdminsUserPermission(int newIndex, struct system *mySystem);
 string convertPermissionIntToString(int permit);
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem );
+void displayAllUsers (struct system *mySystem);
+void displayAllGroups (struct system *mySystem);
 struct user {
 	string userName;
 	string password;
@@ -202,6 +204,7 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 		cin>>operation;
 		enOperation = operation;
 		mySystem->myGroups.groups[index-1].isEnabled = operation=="enable" ? 1 : 0;	
+		displayAllGroups(mySystemPointer);
 	}
 	else if(type == "user" && currUserIndex > 0 ){
 		int index;
@@ -211,7 +214,8 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 		cout<<"Enter the operation (disable/enable)"<<endl;
 		cin>>operation;
 		enOperation = operation;
-		mySystem->myUsers.users[index-1].isEnabled = operation=="enable" ? 1 : 0;	
+		mySystem->myUsers.users[index-1].isEnabled = operation=="enable" ? 1 : 0;
+		displayAllUsers(mySystemPointer);	
 	}
 	
 	if(currGroupIndex != -1 || currUserIndex > 0 ){
@@ -430,6 +434,7 @@ int main (){
 							displayAllUsers(mySystemPointer);
 						}
 						enableOrDisableGroupOrUser(mySystemPointer, reply);
+						
 					}
 					if(action2 == 0){
 						break;
