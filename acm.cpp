@@ -13,7 +13,10 @@ struct user getUserFromIdOrUserName (struct system *mySystem, string userNameOrI
 void listGroupUser (struct system *mySystem, int groupIndex);
 int getIndexOfGroupUser(struct system *mySystem, int groupIndex, string userName);
 int getIndexFromSystem(struct system *mySystem, string type, string id);
-void addUserPermssionToObject (string permission, string currentUserName, string userId,  int newIndex, struct system *mySystem );
+void addUserPermissionToObject (string permission, string currentUserName, string userId,  int newIndex, struct system *mySystem );
+void addGroupPermissionToObject (string permission, string groupName, string groupId, int objectIndex, struct system *mySystem );
+string convertPermissionIntToString(int permit);
+struct myUsers getUsersNotInGroup(struct system *mySystem);
 struct user {
 	string userName;
 	string password;
@@ -349,12 +352,35 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 }
 
 
-void setObjectPermission (struct system *mySystem,  string objectName, string permission){
+void setUserPermissions (struct system *mySystem,  string objectName, string permission){
+	struct myUsers usersAdd = getUsersNotInGroup(mySystem);
+	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	if(usersAdd.currentUserIndex >=0){
+		struct userPermits newPermit; 
+		mySystem->myObjects.objects[objectIndex].userPermission = newPermit;
+		mySystem->myObjects.objects[objectIndex].userPermission.currentUserPermission = usersAdd.currentUserIndex;
 		
+		for(int i =0; i< usersAdd.currentUserIndex+1; i++){
+			struct user currentUser = usersAdd.users[i];
+			addUserPermissionToObject(permission, currentUser.userName, currentUser.userId, objectIndex , mySystem);			
+		}
+	}
 }
 
-void setGroupPermissions (){
-	
+void setGroupPermissions (struct system *mySystem, string objectName, string permission){
+	int currGroupIndex = mySystem->myGroups.currentGroupIndex;
+	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	if(currGroupIndex == -1){
+		return;
+	}else{
+		struct groupPermits newPermit;
+		mySystem->myObjects.objects[objectIndex].groupPermission = newPermit;
+		mySystem->myObjects.objects[objectIndex].groupPermission.currentGroupPermission  = -1;
+		for(int i=0; i<currGroupIndex+1; i++){
+			struct group currentGroup = mySystem->myGroups.groups[i];
+			addGroupPermissionToObject(permission,currentGroup.groupName, currentGroup.groupId, objectIndex, mySystem);
+		}
+	}
 }
 
 void displayAllUsers (struct system *mySystem) {
@@ -428,7 +454,9 @@ void createNewObject (struct system *mySystem){
 	mySystem->myObjects.objects[newIndex].objectId = gen_id();
 	mySystem->myObjects.objects[newIndex].objectOwner = objectOwner;
 	giveAllAdminsUserPermission(newIndex, mySystemPointer); 
-	addUserPermssionToObject(convertPermissionIntToString(7), objectOwner.userName, objectOwner.userId, newIndex, mySystemPointer); // permissions for the curent userName
+	addUserPermissionToObject(convertPermissionIntToString(6), objectOwner.userName, objectOwner.userId, newIndex, mySystemPointer); // permissions for the curent userName
+	setGroupPermissions(mySystem, fileName, convertPermissionIntToString(6));
+	setUserPermissions(mySystem, fileName, convertPermissionIntToString(6));
 }
 
 string convertPermissionIntToString(int permit){
@@ -454,13 +482,14 @@ void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
 	int i = 0;
 	for(i=0; i< currIndex+1; i++){
 		if(mySystem->myUsers.users[i].isAdmin){
-			addUserPermssionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, mySystem->myUsers.users[i].userId, objectIndex, mySystemPointer);
+			addUserPermissionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, mySystem->myUsers.users[i].userId, objectIndex, mySystemPointer);
 		}
 	}
 	
 }
-void addUserPermssionToObject (string permission, string currentUserName, string userId,  int newIndex, struct system *mySystem ){
-	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission =  mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission > 0  ? mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission : -1; 
+void addUserPermissionToObject (string permission, string currentUserName, string userId,  int objectIndex, struct system *mySystem ){
+	int newIndex  = objectIndex;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission =  mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission >= 0  ? mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission : -1; 
 	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission;
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canRead = permission[0]=='4' ? 1: 0;
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canWrite = permission[1]=='2' ? 1: 0;
@@ -468,8 +497,9 @@ void addUserPermssionToObject (string permission, string currentUserName, string
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userName = currentUserName;
 	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userId = userId;
 }
-void addGroupPermssionToObject (string permission, string groupName, string groupId, int newIndex, struct system *mySystem ){
-	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission =  mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission > 0  ? mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission : -1; 
+void addGroupPermissionToObject (string permission, string groupName, string groupId, int objectIndex, struct system *mySystem ){
+	int newIndex = objectIndex;
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission =  mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission >= 0  ? mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission : -1; 
 	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission;
 	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].canRead = permission[0]=='4' ? 1: 0;
 	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].canWrite = permission[1]=='2' ? 1: 0;
@@ -482,15 +512,14 @@ struct myUsers getUsersNotInGroup(struct system *mySystem){
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	struct myUsers noGroup;
 	int x = -1;
-	if(currIndex > 0 ){
+	if(currIndex >= 0 ){
 		for(int i=0; i< currIndex+1; i++){
-			if(i == mySystem->authUserId)continue;
-			else if(mySystem->myUsers.users[i].isInGroup == false){
-				++noGroup.currentUserIndex;
+			if(mySystem->myUsers.users[i].isInGroup == false){
 				noGroup.users[++x] = mySystem->myUsers.users[i];
 			}	
 		}	
 	}
+	noGroup.currentUserIndex = x;
 	return noGroup;
 }
 
@@ -680,6 +709,20 @@ void readObject (struct system *mySystem){
 	else{
 		cout<<"Access denied"<<endl;
 	}
+}
+void setPermission(struct system *mySystem){
+	displayAllObjects(mySystem);
+	string objectName;
+	cout<<"Enter the name of the object you want to read"<<endl;
+	cin>>objectName;
+	int permission;
+	cout<<"Enter the permission: (0-777)"<<endl;
+	if(permission < 0 || permission > 777){
+		cout<<"Invalid permission"<<endl;
+		return;
+	}
+
+	
 }
 int main (){
 
