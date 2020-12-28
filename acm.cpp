@@ -17,6 +17,7 @@ void addUserPermissionToObject (string permission, string currentUserName, strin
 void addGroupPermissionToObject (string permission, string groupName, string groupId, int objectIndex, struct system *mySystem );
 string convertPermissionIntToString(int permit);
 struct myUsers getUsersNotInGroup(struct system *mySystem);
+void setObjectPermission(struct system *mySystem);
 struct user {
 	string userName;
 	string password;
@@ -124,33 +125,63 @@ bool isNumber(string s)
     return true;
 }
 
-void addUserToSystem (struct system *mySystem) {
+void addUserToSystem (struct system *mySystem, bool isDefaultAdmin = false) {
 	
-	int newIndex = ++mySystem->myUsers.currentUserIndex;
-	string isAdmin;
+
+	string isAdmin = isDefaultAdmin  ? "Y": "";
+	string userName;
 	cout<<"Enter the username: ";
-	cin>>mySystem->myUsers.users[newIndex].userName;
-	cout<<"Enter  your password: ";
-	cin>>mySystem->myUsers.users[newIndex].password;
-	cout<<"Are you an admin ?(Y/n):  ";
-	cin>>isAdmin;
-	mySystem->myUsers.users[newIndex].isAdmin = isAdmin == "Y" ? 1 : 0;
-	mySystem->myUsers.users[newIndex].isEnabled = 1;
-	mySystem->myUsers.users[newIndex].isInGroup = false;
-	mySystem->myUsers.users[newIndex].userId = gen_id();
-	cout<<"User added successfully"<<endl;
+	cin>>userName;
+	int userExists = getIndexFromSystem(mySystem,"users", userName);
+	if(userExists == -1){
+		int newIndex = ++mySystem->myUsers.currentUserIndex;
+		mySystem->myUsers.users[newIndex].userName = userName;
+	
+		cout<<"Enter  your password: ";
+		cin>>mySystem->myUsers.users[newIndex].password;
+		if(!isDefaultAdmin){
+			cout<<"Are you an admin ?(Y/n):  ";
+			cin>>isAdmin;	
+		}
+		
+		mySystem->myUsers.users[newIndex].isAdmin = isAdmin == "Y" ? 1 : 0;
+		mySystem->myUsers.users[newIndex].isEnabled = 1;
+		mySystem->myUsers.users[newIndex].isInGroup = false;
+		mySystem->myUsers.users[newIndex].userId = gen_id();
+		cout<<"User added successfully"<<endl;		
+		setObjectPermission(mySystem);
+	}
+	else{
+		cout<<"User Already exists"<<endl;
+		cout<<"Change the user name"<<endl;
+		addUserToSystem(mySystem);
+	} 	
 	cout<<endl;
 }
 
 void addGroupToSystem(struct system *mySystem){
 	
-	int newIndex = ++mySystem->myGroups.currentGroupIndex;
+	string groupName;
 	cout<<"Enter the group name"<<endl;
-	cin>>mySystem->myGroups.groups[newIndex].groupName;
-	mySystem->myGroups.groups[newIndex].isEnabled = 1;
-	mySystem->myGroups.groups[newIndex].groupId = gen_id();
-	mySystem->myGroups.groups[newIndex].groupUsers.currentUserIndex = -1;
-	cout<<"Succesfully added!"<<endl;
+	cin>>groupName;
+	int groupExists = getIndexFromSystem(mySystem,"groups", groupName);
+	if(groupExists == -1){
+		int newIndex = ++mySystem->myGroups.currentGroupIndex;
+		mySystem->myGroups.groups[newIndex].groupName = groupName;
+		mySystem->myGroups.groups[newIndex].isEnabled = 1;
+		mySystem->myGroups.groups[newIndex].groupId = gen_id();
+		mySystem->myGroups.groups[newIndex].groupUsers.currentUserIndex = -1;
+		setObjectPermission(mySystem);
+		cout<<"Succesfully added!"<<endl;	
+	}
+	else{
+		cout<<"Group Already exists"<<endl;
+		cout<<"Change the group name"<<endl;
+		addGroupToSystem(mySystem);
+	} 
+
+	
+	
 }
 void displayAvailableUsers  (struct system *mySystem, int groupIndex){
 	int currIndex = mySystem->myUsers.currentUserIndex;
@@ -198,6 +229,7 @@ void addUserToGroup(struct system *mySystem, int groupIndex){
 			int userIndex = 	getIndexFromSystem(mySystem, "users", newUser.userName);
 			mySystem->myUsers.users[userIndex].isInGroup = true;		
 			cout<<"Succesfully added!"<<endl;
+			setObjectPermission(mySystem);
 			listGroupUser(mySystemPointer, groupIndex);
 		}
 		else{
@@ -234,6 +266,7 @@ void deleteUserFromGroup(struct system *mySystem, int groupIndex){
 		newSetofUsers.currentUserIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex-1;
 		mySystem->myGroups.groups[groupIndex].groupUsers = newSetofUsers;
 		cout<<"Deleted user sucessfully"<<endl;
+		setObjectPermission(mySystem);
 		listGroupUser(mySystemPointer, groupIndex);		
 }
 
@@ -311,7 +344,8 @@ void deleteFromSystem(struct system *mySystem, string type){
 		cout<<"Deleted user sucessfully"<<endl;
 		displayAllUsers(mySystemPointer);		
 	}
-	else return ;
+	setObjectPermission(mySystem);
+	return;
 }
 void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 	int currGroupIndex = mySystem->myGroups.currentGroupIndex;
@@ -355,7 +389,9 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 void setUserPermissions (struct system *mySystem,  string objectName, string permission){
 	struct myUsers usersAdd = getUsersNotInGroup(mySystem);
 	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	giveAllAdminsUserPermission(objectIndex, mySystem);
 	if(usersAdd.currentUserIndex >=0){
+		
 		struct userPermits newPermit; 
 		mySystem->myObjects.objects[objectIndex].userPermission = newPermit;
 		mySystem->myObjects.objects[objectIndex].userPermission.currentUserPermission = usersAdd.currentUserIndex;
@@ -438,25 +474,34 @@ void displayAllGroups(struct system *mySystem){
 	cout<<endl;
 }
 
-
-
 void createNewObject (struct system *mySystem){
-	int newIndex = ++mySystem->myObjects.currentObjectIndex;
+	
+	
 	string fileName;
 	cout<<"Input the file name that you want to create"<<endl;
 	cin>>fileName;	
-	string filePath1 =  "files/"+fileName; 
-	string filePath2 = "files/"+fileName+".txt";
- 	ofstream file(fileName[fileName.length()-3] != '.' ? filePath2.c_str() : filePath1.c_str());
-	cout<<"The file was created succesfully"<<endl;
-	struct user objectOwner = mySystem->myUsers.users[mySystem->authUserId];
-	mySystem->myObjects.objects[newIndex].objectName=fileName;
-	mySystem->myObjects.objects[newIndex].objectId = gen_id();
-	mySystem->myObjects.objects[newIndex].objectOwner = objectOwner;
-	giveAllAdminsUserPermission(newIndex, mySystemPointer); 
-	addUserPermissionToObject(convertPermissionIntToString(6), objectOwner.userName, objectOwner.userId, newIndex, mySystemPointer); // permissions for the curent userName
-	setGroupPermissions(mySystem, fileName, convertPermissionIntToString(6));
-	setUserPermissions(mySystem, fileName, convertPermissionIntToString(6));
+	int fileExists = getIndexFromSystem(mySystem,"objects", fileName);
+	if(fileExists == -1){
+		int newIndex = ++mySystem->myObjects.currentObjectIndex;
+		string filePath1 =  "files/"+fileName; 
+		string filePath2 = "files/"+fileName+".txt";
+	 	ofstream file(fileName[fileName.length()-3] != '.' ? filePath2.c_str() : filePath1.c_str());
+		cout<<"The file was created succesfully"<<endl;
+		struct user objectOwner = mySystem->myUsers.users[mySystem->authUserId];
+		mySystem->myObjects.objects[newIndex].objectName=fileName;
+		mySystem->myObjects.objects[newIndex].objectId = gen_id();
+		mySystem->myObjects.objects[newIndex].objectOwner = objectOwner;
+		mySystem->myObjects.objects[newIndex].currentPermission = "666";
+		addUserPermissionToObject(convertPermissionIntToString(7), objectOwner.userName, objectOwner.userId, newIndex, mySystemPointer); // permissions for the curent userName
+		setGroupPermissions(mySystem, fileName, convertPermissionIntToString(6));
+		setUserPermissions(mySystem, fileName, convertPermissionIntToString(6));	
+	}
+	else{
+		cout<<"File Already exists"<<endl;
+		cout<<"Change the file name"<<endl;
+		createNewObject(mySystem);
+	} 
+	
 }
 
 string convertPermissionIntToString(int permit){
@@ -476,7 +521,6 @@ string convertPermissionIntToString(int permit){
 	return ans;
 }
 
-// permissions
 void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
@@ -514,7 +558,7 @@ struct myUsers getUsersNotInGroup(struct system *mySystem){
 	int x = -1;
 	if(currIndex >= 0 ){
 		for(int i=0; i< currIndex+1; i++){
-			if(mySystem->myUsers.users[i].isInGroup == false){
+			if(mySystem->myUsers.users[i].isInGroup == false && !mySystem->myUsers.users[i].isAdmin ){
 				noGroup.users[++x] = mySystem->myUsers.users[i];
 			}	
 		}	
@@ -721,19 +765,38 @@ void setPermission(struct system *mySystem){
 		cout<<"Invalid permission"<<endl;
 		return;
 	}
+}
 
-	
+void setObjectPermission(struct system *mySystem){
+	int currIndex = mySystem->myObjects.currentObjectIndex;
+	int i = 0;
+	if(currIndex >= 0 ){
+		for(i=0; i< currIndex+1; i++){
+			string objectName =  mySystem->myObjects.objects[i].objectName;
+			int currentGroupPermission = (mySystem->myObjects.objects[i].currentPermission[1] - '0');
+			int currentUserPermission = (mySystem->myObjects.objects[i].currentPermission[2] - '0');
+			if(currentGroupPermission > 0){
+				setGroupPermissions(mySystem,objectName, convertPermissionIntToString(currentGroupPermission));				
+			}
+			if(currentUserPermission > 0){
+				setUserPermissions(mySystem, objectName, convertPermissionIntToString(currentUserPermission));
+			}
+		}	
+	}
+
 }
 int main (){
 
 	cout<<"Welcome to the system"<<endl;
 	cout<<"Create a new Default Account"<<endl;
-	addUserToSystem(mySystemPointer);
+	addUserToSystem(mySystemPointer, true);
 	system("CLS");
 	
 	int action1 = 1;
 	while(action1 > 0){
-		cout<<"1. Login"<<endl;
+		if(mySystem.authUserId < 0){
+			cout<<"1. Login"<<endl;		
+		}
 		if(mySystem.authUserId >=0){
 			cout<<"2. Logout"<<endl;		
 		}
@@ -742,7 +805,7 @@ int main (){
 		if(action1 <= 0){
 			exit(1);
 		}
-		if(action1 == 1){
+		if(action1 == 1 && mySystem.authUserId < 0 ){
 			int action2 = 1;
 			userLogin(mySystemPointer);
 			struct user currentUser = getCurrentUserDetails(mySystemPointer);
