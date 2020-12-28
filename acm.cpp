@@ -12,12 +12,15 @@ void displayAllGroups (struct system *mySystem);
 struct user getUserFromIdOrUserName (struct system *mySystem, string userNameOrId);
 void listGroupUser (struct system *mySystem, int groupIndex);
 int getIndexOfGroupUser(struct system *mySystem, int groupIndex, string userName);
+int getIndexFromSystem(struct system *mySystem, string type, string id);
+void addUserPermssionToObject (string permission, string currentUserName, string userId,  int newIndex, struct system *mySystem );
 struct user {
 	string userName;
 	string password;
 	int isAdmin;
 	string userId;
 	int isEnabled;
+	bool isInGroup;
 };
 struct myUsers {
 	struct user users[100];
@@ -58,10 +61,11 @@ struct groupPermits {
 };
 struct object {
 	string objectId;
-	string objectOwner;
+	struct user  objectOwner;
 	string objectName;
 	struct userPermits userPermission;
 	struct groupPermits groupPermission;
+	string currentPermission;
 };
 
 struct myGroups {
@@ -129,6 +133,7 @@ void addUserToSystem (struct system *mySystem) {
 	cin>>isAdmin;
 	mySystem->myUsers.users[newIndex].isAdmin = isAdmin == "Y" ? 1 : 0;
 	mySystem->myUsers.users[newIndex].isEnabled = 1;
+	mySystem->myUsers.users[newIndex].isInGroup = false;
 	mySystem->myUsers.users[newIndex].userId = gen_id();
 	cout<<"User added successfully"<<endl;
 	cout<<endl;
@@ -185,7 +190,10 @@ void addUserToGroup(struct system *mySystem, int groupIndex){
 		struct user newUser = getUserFromIdOrUserName(mySystemPointer, userName);
 		if(newUser.isEnabled){
 			int newIndex = ++mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
-			mySystem->myGroups.groups[groupIndex].groupUsers.users[newIndex] = newUser;			
+			mySystem->myGroups.groups[groupIndex].groupUsers.users[newIndex] = newUser;
+			//update isInGroup
+			int userIndex = 	getIndexFromSystem(mySystem, "users", newUser.userName);
+			mySystem->myUsers.users[userIndex].isInGroup = true;		
 			cout<<"Succesfully added!"<<endl;
 			listGroupUser(mySystemPointer, groupIndex);
 		}
@@ -211,6 +219,8 @@ void deleteUserFromGroup(struct system *mySystem, int groupIndex){
 		string userName;
 		cout<<"Enter the username to delete"<<endl;
 		cin>>userName;
+		int userIndex = 	getIndexFromSystem(mySystem, "users", userName);
+		mySystem->myUsers.users[userIndex].isInGroup = false;
 		int index = getIndexOfGroupUser(mySystemPointer, groupIndex, userName);
 		for(int i=0; i<index; i++){
 			newSetofUsers.users[i] = mySystem->myGroups.groups[groupIndex].groupUsers.users[i];
@@ -254,7 +264,7 @@ int getIndexFromSystem(struct system *mySystem, string type, string id){
 	else {
 		int currIndex = mySystem->myObjects.currentObjectIndex;
 		for(int i  = 0; i< currIndex + 1; i++){
-			if(mySystem->myObjects.objects[i].objectId == id){
+			if(mySystem->myObjects.objects[i].objectName == id){
 				index = i;
 			}
 		}
@@ -339,6 +349,13 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 }
 
 
+void setObjectPermission (struct system *mySystem,  string objectName, string permission){
+		
+}
+
+void setGroupPermissions (){
+	
+}
 
 void displayAllUsers (struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
@@ -355,6 +372,24 @@ void displayAllUsers (struct system *mySystem) {
 	}
 	else{
 		cout<<"No currents users"<<endl;
+	}
+	cout<<"............................................................................."<<endl;
+	cout<<endl;
+}
+void displayAllObjects (struct system *mySystem) {
+	int currIndex = mySystem->myObjects.currentObjectIndex;
+	int i = 0;
+	cout<<"............................................................................."<<endl;
+	if(currIndex >= 0 ){
+		cout<<"No \t Object Name \t Object Owner "<<endl;	
+		for(i=0; i< currIndex+1; i++){
+			string objectName =  mySystem->myObjects.objects[i].objectName;
+			string objectOwner =  mySystem->myObjects.objects[i].objectName;
+			cout<<i+1<<"\t "<<objectName<<"\t "<<objectOwner<<endl;	
+		}	
+	}
+	else{
+		cout<<"No currents objects"<<endl;
 	}
 	cout<<"............................................................................."<<endl;
 	cout<<endl;
@@ -379,21 +414,21 @@ void displayAllGroups(struct system *mySystem){
 
 
 
-void createNewObject (struct system *mySystem, string currentUserName){
+void createNewObject (struct system *mySystem){
 	int newIndex = ++mySystem->myObjects.currentObjectIndex;
 	string fileName;
 	cout<<"Input the file name that you want to create"<<endl;
-	cin>>fileName;
-	string filePath = "files/"+fileName; 
- 	ofstream file(filePath.c_str());
+	cin>>fileName;	
+	string filePath1 =  "files/"+fileName; 
+	string filePath2 = "files/"+fileName+".txt";
+ 	ofstream file(fileName[fileName.length()-3] != '.' ? filePath2.c_str() : filePath1.c_str());
 	cout<<"The file was created succesfully"<<endl;
+	struct user objectOwner = mySystem->myUsers.users[mySystem->authUserId];
 	mySystem->myObjects.objects[newIndex].objectName=fileName;
 	mySystem->myObjects.objects[newIndex].objectId = gen_id();
-	mySystem->myObjects.objects[newIndex].objectOwner = currentUserName;
-	//initializing the defaul permissions for the file
-	giveAllAdminsUserPermission(newIndex, mySystemPointer); //permission for all users
-	addNewUserPermssionToObject(convertPermissionIntToString(7), currentUserName, newIndex, mySystemPointer); // permissions for the curent userName
-	
+	mySystem->myObjects.objects[newIndex].objectOwner = objectOwner;
+	giveAllAdminsUserPermission(newIndex, mySystemPointer); 
+	addUserPermssionToObject(convertPermissionIntToString(7), objectOwner.userName, objectOwner.userId, newIndex, mySystemPointer); // permissions for the curent userName
 }
 
 string convertPermissionIntToString(int permit){
@@ -413,16 +448,52 @@ string convertPermissionIntToString(int permit){
 	return ans;
 }
 
+// permissions
 void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
 	for(i=0; i< currIndex+1; i++){
 		if(mySystem->myUsers.users[i].isAdmin){
-			addNewUserPermssionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, objectIndex, mySystemPointer);
+			addUserPermssionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, mySystem->myUsers.users[i].userId, objectIndex, mySystemPointer);
 		}
 	}
 	
 }
+void addUserPermssionToObject (string permission, string currentUserName, string userId,  int newIndex, struct system *mySystem ){
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission =  mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission > 0  ? mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission : -1; 
+	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canRead = permission[0]=='4' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canWrite = permission[1]=='2' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canExecute = permission[2]=='1' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userName = currentUserName;
+	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userId = userId;
+}
+void addGroupPermssionToObject (string permission, string groupName, string groupId, int newIndex, struct system *mySystem ){
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission =  mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission > 0  ? mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission : -1; 
+	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermission;
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].canRead = permission[0]=='4' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].canWrite = permission[1]=='2' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].canExecute = permission[2]=='1' ? 1: 0;
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].groupName = groupName;
+	mySystem->myObjects.objects[newIndex].groupPermission.currentGroupPermissions[newPermissionIndex].groupId = groupId;
+}
+
+struct myUsers getUsersNotInGroup(struct system *mySystem){
+	int currIndex = mySystem->myUsers.currentUserIndex;
+	struct myUsers noGroup;
+	int x = -1;
+	if(currIndex > 0 ){
+		for(int i=0; i< currIndex+1; i++){
+			if(i == mySystem->authUserId)continue;
+			else if(mySystem->myUsers.users[i].isInGroup == false){
+				++noGroup.currentUserIndex;
+				noGroup.users[++x] = mySystem->myUsers.users[i];
+			}	
+		}	
+	}
+	return noGroup;
+}
+
 void displayUserDetails (struct system *mySystem, int userId){
 	cout<<"............................................................................."<<endl;
 	cout<<"User Name: "<< mySystem->myUsers.users[userId].userName<<endl;
@@ -493,26 +564,123 @@ void userLogin (struct system *mySystem){
 	
 	
 }
-void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem ){
-	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission =  mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission > 0  ? mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission : -1; 
-	int newPermissionIndex = ++mySystem->myObjects.objects[newIndex].userPermission.currentUserPermission;
-	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canRead = permission[0]=='4' ? 1: 0;
-	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canWrite = permission[1]=='2' ? 1: 0;
-	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].canExecute = permission[2]=='1' ? 1: 0;
-	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userName = currentUserName;
-//	mySystem->myObjects.objects[newIndex].userPermission.currentUserPermissions[newPermissionIndex].userId = getIdFromSystemName(mySystemPointer, "users", currentUserName);
-}
 void logout (struct system *mySystem){
+	
 	mySystem->authUserId = -1;
 	cout<<"............................................................................."<<endl;
 	cout<<"logout successfull"<<endl;
 	cout<<"............................................................................."<<endl;
 }
+bool isUserInGroup(struct system *mySystem, int groupIndex){
+	int groupUserIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
+	struct user currentUser = getCurrentUserDetails(mySystem);
+	for(int i=0; i< groupUserIndex+1; i++){
+		if(currentUser.userId == mySystem->myGroups.groups[groupIndex].groupUsers.users[i].userId){
+			return true;
+		}
+	}
+	return false;
+	
+}
+struct groupPermission getGroupPermissionForObject (struct system *mySystem, int groupIndex, string objectName){
+	struct groupPermission isAccessible;
+	isAccessible.canExecute = 0;
+	isAccessible.canWrite = 0;
+	isAccessible.canRead = 0;
+	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	int currGroupPermissionIndex = mySystem->myObjects.objects[objectIndex].groupPermission.currentGroupPermission >=0 ? 	mySystem->myObjects.objects[objectIndex].groupPermission.currentGroupPermission : -1;
+	if(currGroupPermissionIndex >= 0){
+		for(int i =0; i<currGroupPermissionIndex+1; i++){
+			struct groupPermission objectGroupPermission = mySystem->myObjects.objects[objectIndex].groupPermission.currentGroupPermissions[i];
+			if(mySystem->myGroups.groups[groupIndex].groupId ==objectGroupPermission.groupId){
+				isAccessible.canExecute = max(isAccessible.canExecute, objectGroupPermission.canExecute);
+				isAccessible.canRead = max(isAccessible.canExecute, objectGroupPermission.canRead);
+				isAccessible.canWrite = max(isAccessible.canExecute, objectGroupPermission.canWrite);	
+			}
+		}	
+	}
+	return isAccessible;
+	
+}
+struct userPermission groupPermissionsForObject(struct system *mySystem, string objectName){
+	struct userPermission isAccessible;
+	isAccessible.canExecute = 0;
+	isAccessible.canWrite = 0;
+	isAccessible.canRead = 0;
+	int allCurGroupIndex = mySystem->myGroups.currentGroupIndex;
+	for(int i =0; i<allCurGroupIndex+1; i++){
+		int groupUserIndex = mySystem->myGroups.groups[i].groupUsers.currentUserIndex;
+		if(groupUserIndex >= 0){
+			 if(isUserInGroup(mySystem, i)){
+			 	struct groupPermission object_i = getGroupPermissionForObject(mySystem, i, objectName);
+			 	isAccessible.canExecute = max(isAccessible.canExecute, object_i.canExecute);
+				isAccessible.canRead = max(isAccessible.canExecute, object_i.canRead);
+				isAccessible.canWrite = max(isAccessible.canExecute, object_i.canWrite);	
+			 }
+		}
+		else continue;	
+	}
+	
+	
+	return isAccessible;
+}
+struct userPermission maxPermissionForObjectUser(struct system *mySystem, string objectName){
+	struct userPermission isAccessible;
+	isAccessible.canExecute = 0;
+	isAccessible.canWrite = 0;
+	isAccessible.canRead = 0;
+	struct user currentUser = getCurrentUserDetails(mySystem);
+	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	int currUserPermissionIndex = mySystem->myObjects.objects[objectIndex].userPermission.currentUserPermission >=0 ? 	mySystem->myObjects.objects[objectIndex].userPermission.currentUserPermission : -1;
+	if(currUserPermissionIndex >= 0){
+		for(int i =0; i<currUserPermissionIndex+1; i++){
+			struct userPermission objectUserPermission = mySystem->myObjects.objects[objectIndex].userPermission.currentUserPermissions[i];
+			if(currentUser.userId == objectUserPermission.userId){
+				isAccessible.canExecute = max(isAccessible.canExecute, objectUserPermission.canExecute);
+				isAccessible.canRead = max(isAccessible.canExecute, objectUserPermission.canRead);
+				isAccessible.canWrite = max(isAccessible.canExecute, objectUserPermission.canWrite);
+			}
+		}
+	}
+	return isAccessible;
+}
 
-//int[] string 
-
-//void writeObject (struct syst)
-
+struct userPermission canAccessthisFile(struct system *mySystem, string objectName){
+	// initialize default permissions
+	struct userPermission isAccessible;
+	isAccessible.canExecute = 0;
+	isAccessible.canWrite = 0;
+	isAccessible.canRead = 0;
+	struct user currentUser = getCurrentUserDetails(mySystem);
+	isAccessible.userId = currentUser.userId;
+	isAccessible.userName  = currentUser.userName;
+	// max permissions for any group that the user and the object belongs too
+	if(currentUser.isInGroup){
+		struct userPermission maxGroupPermission = groupPermissionsForObject(mySystem, objectName);
+		isAccessible.canExecute = max(isAccessible.canExecute, maxGroupPermission.canExecute);
+		isAccessible.canRead = max(isAccessible.canExecute, maxGroupPermission.canRead);
+		isAccessible.canWrite = max(isAccessible.canExecute, maxGroupPermission.canWrite);
+	}
+	//max permissions for users of an object
+	struct userPermission maxUserPermission = maxPermissionForObjectUser(mySystem, objectName);
+	isAccessible.canExecute = max(isAccessible.canExecute, maxUserPermission.canExecute);
+	isAccessible.canRead = max(isAccessible.canExecute, maxUserPermission.canRead);
+	isAccessible.canWrite = max(isAccessible.canExecute, maxUserPermission.canWrite);
+	return isAccessible;
+}
+void readObject (struct system *mySystem){
+	displayAllObjects(mySystem);
+	string objectName;
+	cout<<"Enter the name of the object you want to read"<<endl;
+	cin>>objectName;
+	struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
+	if(myObjectPermission.canRead){
+		cout<<"Yes you can read this file"<<endl;
+	}	
+	else{
+		cout<<"Access denied"<<endl;
+	}
+}
 int main (){
 
 	cout<<"Welcome to the system"<<endl;
@@ -535,6 +703,7 @@ int main (){
 			int action2 = 1;
 			userLogin(mySystemPointer);
 			struct user currentUser = getCurrentUserDetails(mySystemPointer);
+			// admin menu
 			if(currentUser.isAdmin && mySystem.authUserId >=0){
 				while(action2 > 0){
 					cout<<"Admin Menu"<<endl;
@@ -543,6 +712,7 @@ int main (){
 					cout<<"3. Add/Delete user to/grom group"<<endl;
 					cout<<"4. Grant/Revoke users/groups rights"<<endl;
 					cout<<"5. Delete user/group"<<endl;
+					cout<<"6. Read Object"<<endl;
 					cout<<"0. Return"<<endl;
 					cin>>action2;
 					if(action2 == 1){
@@ -606,11 +776,29 @@ int main (){
 						else break;
 						deleteFromSystem(mySystemPointer, type=="group" ? "groups": "users");
 					}
+					if(action2 == 6){
+						readObject(mySystemPointer);
+					}
 				}
 				
 			}
+			//user menu
 			else {
-				
+				while(action2 > 0 && mySystem.authUserId >=0){
+					cout<<"1. Create Object"<<endl;
+					cout<<"2. Delete Object"<<endl;
+					cout<<"3. Read Object"<<endl;
+					cout<<"4. Execute Object"<<endl;
+					cout<<"0. Return"<<endl;
+					cin>>action2;
+					if(action2 == 1){
+						createNewObject(mySystemPointer);
+					}
+					if(action2 == 2){
+						readObject(mySystemPointer);
+					}
+							
+				}
 			}
 		}
 		if(action1 == 2 && mySystem.authUserId >= 0){
