@@ -272,8 +272,7 @@ void deleteUserFromGroup(struct system *mySystem, int groupIndex){
 		newSetofUsers.currentUserIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex-1;
 		mySystem->myGroups.groups[groupIndex].groupUsers = newSetofUsers;
 		cout<<"Deleted user sucessfully"<<endl;
-		setObjectPermission(mySystem);
-		listGroupUser(mySystemPointer, groupIndex);		
+		setObjectPermission(mySystem);	
 	}
 	return;
 		
@@ -485,8 +484,8 @@ void displayAllObjects (struct system *mySystem) {
 		cout<<"No \t Object Name \t Object Owner "<<endl;	
 		for(i=0; i< currIndex+1; i++){
 			string objectName =  mySystem->myObjects.objects[i].objectName;
-			string objectOwner =  mySystem->myObjects.objects[i].objectName;
-			cout<<i+1<<"\t "<<objectName<<"\t "<<objectOwner<<endl;	
+			string objectOwner =  mySystem->myObjects.objects[i].objectOwner.userName;
+			cout<<i+1<<"\t "<<objectName<<"\t     \t"<<objectOwner<<endl;	
 		}	
 	}
 	else{
@@ -1009,7 +1008,7 @@ int main (){
 							if(actionGroupWork == 1){	
 								addUserToGroup(mySystemPointer, index);
 							}
-							else if (actionGroupWork == 1){
+							else if (actionGroupWork == 2){
 								deleteUserFromGroup(mySystemPointer, index);
 							}
 							else break;
@@ -1031,11 +1030,9 @@ int main (){
 								displayAllUsers(mySystemPointer);
 								deleteFromSystem(mySystemPointer,"users");
 							}						
-							else {
-								system("CLS");
-								break;
-							};
+							else break;
 						}
+						system("CLS");
 					}
 					if(action2 == 5){
 						int action3x = 1;
@@ -1058,9 +1055,7 @@ int main (){
 							if(action3x == 4){
 								deleteFromSystem(mySystemPointer, "objects");
 							}
-							else {
-								break;
-							};					
+							else break;				
 						}
 
 					}
