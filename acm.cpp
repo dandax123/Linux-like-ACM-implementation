@@ -96,6 +96,10 @@ struct system createNewSystem(){
 	mySystem.myGroups.currentGroupIndex = -1;
 	mySystem.myObjects.currentObjectIndex = -1;
 	mySystem.authUserId = -1;
+	if (mkdir("./files") != 0){
+		cout<<"Could not create directory to store files."<<endl;
+		cout<<"Create a files directory where you run the code"<<endl;
+	}
 	return mySystem;
 }
 struct system mySystem = createNewSystem();
