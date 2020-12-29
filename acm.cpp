@@ -97,8 +97,10 @@ struct system createNewSystem(){
 	mySystem.myObjects.currentObjectIndex = -1;
 	mySystem.authUserId = -1;
 	if (mkdir("./files") != 0){
-		cout<<"Could not create directory to store files."<<endl;
-		cout<<"Create a files directory where you run the code"<<endl;
+		string directory = "files";
+		string a = "rmdir /s /q " + directory;
+    	system(a.c_str());
+    	mkdir("./files");
 	}
 	return mySystem;
 }
@@ -362,7 +364,7 @@ void deleteFromSystem(struct system *mySystem, string type){
 		displayAllObjects(mySystem);
 		struct myObjects newSetofObjects;
 		int allIndex = mySystem->myObjects.currentObjectIndex;
-		if(allIndex < 1){
+		if(allIndex < 0){
 			return ;
 		}
 		cout<<"Enter the " <<operation<<" name you want to delete"<<endl;
