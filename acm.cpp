@@ -815,7 +815,7 @@ void writeObject(struct system * mySystem) {
   int currObjIndex = mySystem -> myObjects.currentObjectIndex;
   if (currObjIndex >= 0) {
     string objectName;
-    cout << "Enter the name of the object you want to read" << endl;
+    cout << "Enter the name of the object you want to write to" << endl;
     cin >> objectName;
     struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
     if (myObjectPermission.canWrite) {
