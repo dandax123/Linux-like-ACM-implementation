@@ -319,6 +319,7 @@ void deleteFromSystem(struct system * mySystem, string type) {
       return;
     }
     cout << "Enter the " << operation << " name you want to delete" << endl;
+    cin>>userName;
     int index = getIndexFromSystem(mySystemPointer, "groups", userName);
     for (int i = 0; i < index; i++) {
       newSetofGroups.groups[i] = mySystem -> myGroups.groups[i];
