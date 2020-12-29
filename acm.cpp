@@ -2,6 +2,7 @@
 #include <ctime>
 #include <unistd.h>
 #include <fstream> 
+#include <sstream> 
 
 using namespace std;
 void giveAllAdminsUserPermission(int newIndex, struct system *mySystem);
@@ -9,6 +10,7 @@ string convertPermissionIntToString(int permit);
 void addNewUserPermssionToObject (string permission, string currentUserName, int newIndex, struct system *mySystem );
 void displayAllUsers (struct system *mySystem);
 void displayAllGroups (struct system *mySystem);
+void displayAllObjects (struct system *mySystem);
 struct user getUserFromIdOrUserName (struct system *mySystem, string userNameOrId);
 void listGroupUser (struct system *mySystem, int groupIndex);
 int getIndexOfGroupUser(struct system *mySystem, int groupIndex, string userName);
@@ -69,6 +71,7 @@ struct object {
 	string objectName;
 	struct userPermits userPermission;
 	struct groupPermits groupPermission;
+	struct userPermission ownerPermission;
 	string currentPermission;
 };
 
@@ -245,12 +248,9 @@ void addUserToGroup(struct system *mySystem, int groupIndex){
 	
 }
 void deleteUserFromGroup(struct system *mySystem, int groupIndex){
-		struct myUsers newSetofUsers;
-		int allIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
-		if(allIndex < 0){
-			cout<<"No users in this group"<<endl;
-			return ;
-		}
+	struct myUsers newSetofUsers;
+	int allIndex = mySystem->myGroups.groups[groupIndex].groupUsers.currentUserIndex;
+	if(allIndex  >=0){	
 		string userName;
 		cout<<"Enter the username to delete"<<endl;
 		cin>>userName;
@@ -268,6 +268,9 @@ void deleteUserFromGroup(struct system *mySystem, int groupIndex){
 		cout<<"Deleted user sucessfully"<<endl;
 		setObjectPermission(mySystem);
 		listGroupUser(mySystemPointer, groupIndex);		
+	}
+	return;
+		
 }
 
 
@@ -309,13 +312,15 @@ int getIndexFromSystem(struct system *mySystem, string type, string id){
 }
 
 void deleteFromSystem(struct system *mySystem, string type){
-	string userName;
+	string userName;	
 	string operation = type=="groups" ? "group": "user";
-	cout<<"Enter the " <<operation<<" name you want to delete"<<endl;
-	cin>>userName;
 	if(type == "groups"){
 		struct myGroups newSetofGroups;
 		int allIndex = mySystem->myGroups.currentGroupIndex;
+		if(allIndex < 0){
+			return ;
+		}
+		cout<<"Enter the " <<operation<<" name you want to delete"<<endl;
 		int index = getIndexFromSystem(mySystemPointer,"groups", userName);
 		for(int i=0; i<index; i++){
 			newSetofGroups.groups[i] = mySystem->myGroups.groups[i];
@@ -332,6 +337,11 @@ void deleteFromSystem(struct system *mySystem, string type){
 	else if (type == "users"){
 		struct myUsers newSetofUsers;
 		int allIndex = mySystem->myUsers.currentUserIndex;
+		if(allIndex < 1){
+			return ;
+		}
+		cout<<"Enter the " <<operation<<" name you want to delete"<<endl;
+		cin>>userName;
 		int index = getIndexFromSystem(mySystemPointer,"users", userName);
 		for(int i=0; i<index; i++){
 			newSetofUsers.users[i] = mySystem->myUsers.users[i];
@@ -344,39 +354,49 @@ void deleteFromSystem(struct system *mySystem, string type){
 		cout<<"Deleted user sucessfully"<<endl;
 		displayAllUsers(mySystemPointer);		
 	}
+	else if(type == "objects"){
+		displayAllObjects(mySystem);
+		struct myObjects newSetofObjects;
+		int allIndex = mySystem->myObjects.currentObjectIndex;
+		if(allIndex < 1){
+			return ;
+		}
+		cout<<"Enter the " <<operation<<" name you want to delete"<<endl;
+		cin>>userName;
+		int index = getIndexFromSystem(mySystemPointer,"objects", userName);
+		for(int i=0; i<index; i++){
+			newSetofObjects.objects[i] = mySystem->myObjects.objects[i];
+		}
+		for(int i=index; i<allIndex+1; i++){
+			newSetofObjects.objects[i] = mySystem->myObjects.objects[i+1];
+		}
+		newSetofObjects.currentObjectIndex = mySystem->myObjects.currentObjectIndex-1;
+		mySystem->myObjects = newSetofObjects;
+		cout<<"Deleted object sucessfully"<<endl;
+	}
 	setObjectPermission(mySystem);
 	return;
 }
-void enableOrDisableGroupOrUser(struct system *mySystem, string type){
+void enableOrDisableGroupOrUser(struct system *mySystem, string type, int operation){
 	int currGroupIndex = mySystem->myGroups.currentGroupIndex;
 	int currUserIndex = mySystem->myUsers.currentUserIndex;
-	string enOperation;
-
 	if(type == "group" && currGroupIndex != -1 ){
 		int index;
-		string operation;
 		cout<<"Enter the "<<type<<" Id"<<endl;
 		cin>>index;
-		cout<<"Enter the operation (disable/enable)"<<endl;
-		cin>>operation;
-		enOperation = operation;
-		mySystem->myGroups.groups[index-1].isEnabled = operation=="enable" ? 1 : 0;	
+		mySystem->myGroups.groups[index-1].isEnabled = operation;	
 		displayAllGroups(mySystemPointer);
 	}
 	else if(type == "user" && currUserIndex > 0 ){
 		int index;
-		string operation;
 		cout<<"Enter the "<<type<<" Id"<<endl;
 		cin>>index;
-		cout<<"Enter the operation (disable/enable)"<<endl;
-		cin>>operation;
-		enOperation = operation;
-		mySystem->myUsers.users[index-1].isEnabled = operation=="enable" ? 1 : 0;
+		mySystem->myUsers.users[index-1].isEnabled = operation;
 		displayAllUsers(mySystemPointer);	
 	}
 	
 	if(currGroupIndex != -1 || currUserIndex > 0 ){
-		string result = enOperation == "enable" ? "Enabled" : "Disabled";
+		string result = operation  ? "Enabled" : "Disabled";
 		cout<< "Successfully "<<result<<endl;	
 	}
 	else{
@@ -389,6 +409,7 @@ void enableOrDisableGroupOrUser(struct system *mySystem, string type){
 void setUserPermissions (struct system *mySystem,  string objectName, string permission){
 	struct myUsers usersAdd = getUsersNotInGroup(mySystem);
 	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	
 	giveAllAdminsUserPermission(objectIndex, mySystem);
 	if(usersAdd.currentUserIndex >=0){
 		
@@ -398,11 +419,23 @@ void setUserPermissions (struct system *mySystem,  string objectName, string per
 		
 		for(int i =0; i< usersAdd.currentUserIndex+1; i++){
 			struct user currentUser = usersAdd.users[i];
-			addUserPermissionToObject(permission, currentUser.userName, currentUser.userId, objectIndex , mySystem);			
+			if(!currentUser.isAdmin){
+				addUserPermissionToObject(permission, currentUser.userName, currentUser.userId, objectIndex , mySystem);						
+			}	
 		}
 	}
 }
-
+void setOwnerPermissions(struct system *mySystem, string objectName, string permission){	
+	struct userPermission newPermit;
+	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	newPermit.userId = mySystem->myObjects.objects[objectIndex].objectOwner.userId;
+	newPermit.userName = mySystem->myObjects.objects[objectIndex].objectOwner.userName;
+	newPermit.canRead = permission[0]=='4' ? 1: 0;
+	newPermit.canWrite = permission[1]=='2' ? 1: 0;
+	newPermit.canExecute = permission[2]=='1' ? 1: 0;
+	mySystem->myObjects.objects[objectIndex].ownerPermission= newPermit;
+	
+}
 void setGroupPermissions (struct system *mySystem, string objectName, string permission){
 	int currGroupIndex = mySystem->myGroups.currentGroupIndex;
 	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
@@ -491,10 +524,12 @@ void createNewObject (struct system *mySystem){
 		mySystem->myObjects.objects[newIndex].objectName=fileName;
 		mySystem->myObjects.objects[newIndex].objectId = gen_id();
 		mySystem->myObjects.objects[newIndex].objectOwner = objectOwner;
-		mySystem->myObjects.objects[newIndex].currentPermission = "666";
-		addUserPermissionToObject(convertPermissionIntToString(7), objectOwner.userName, objectOwner.userId, newIndex, mySystemPointer); // permissions for the curent userName
+		mySystem->myObjects.objects[newIndex].currentPermission = "766";
+		setOwnerPermissions(mySystem,fileName,convertPermissionIntToString(7));
 		setGroupPermissions(mySystem, fileName, convertPermissionIntToString(6));
-		setUserPermissions(mySystem, fileName, convertPermissionIntToString(6));	
+		setUserPermissions(mySystem, fileName, convertPermissionIntToString(6));
+		cout<<endl;
+		displayAllObjects(mySystem);
 	}
 	else{
 		cout<<"File Already exists"<<endl;
@@ -505,7 +540,7 @@ void createNewObject (struct system *mySystem){
 }
 
 string convertPermissionIntToString(int permit){
-	string ans = "---";
+	string ans = "000";
 	if(permit - 4 >= 0){
 		ans[0]  = '4';
 		permit = permit - 4;
@@ -520,14 +555,32 @@ string convertPermissionIntToString(int permit){
 	}
 	return ans;
 }
+string convertPermissionStringToReadable(int permit){
+	string ans ="---";
+	if(permit - 4 >= 0){
+		ans[0]  = 'r';
+		permit = permit - 4;
+	}
+	if(permit -  2 >= 0) {
+		ans[1] = 'w';
+		permit = permit - 2;
+	}
+	if(permit -1 >= 0 ){
+		ans[2] = 'x';
+		permit = permit - 1;
+	}
+	return ans;
+}
 
 void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
-	for(i=0; i< currIndex+1; i++){
+	for(i=0; i< currIndex; i++){
+		cout<<"admins: "<<endl;
 		if(mySystem->myUsers.users[i].isAdmin){
 			addUserPermissionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, mySystem->myUsers.users[i].userId, objectIndex, mySystemPointer);
 		}
+		cout<<"done"<<endl;
 	}
 	
 }
@@ -739,42 +792,117 @@ struct userPermission canAccessthisFile(struct system *mySystem, string objectNa
 	isAccessible.canExecute = max(isAccessible.canExecute, maxUserPermission.canExecute);
 	isAccessible.canRead = max(isAccessible.canExecute, maxUserPermission.canRead);
 	isAccessible.canWrite = max(isAccessible.canExecute, maxUserPermission.canWrite);
+	int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
+	// if the current user is the owner of the file
+	if(currentUser.userId == mySystem->myObjects.objects[objectIndex].ownerPermission.userId){
+		isAccessible.canExecute = max(isAccessible.canExecute, mySystem->myObjects.objects[objectIndex].ownerPermission.canExecute);
+		isAccessible.canRead = max(isAccessible.canExecute, mySystem->myObjects.objects[objectIndex].ownerPermission.canRead);
+		isAccessible.canWrite = max(isAccessible.canExecute, mySystem->myObjects.objects[objectIndex].ownerPermission.canWrite);	
+	}
+	
 	return isAccessible;
 }
 void readObject (struct system *mySystem){
 	displayAllObjects(mySystem);
-	string objectName;
-	cout<<"Enter the name of the object you want to read"<<endl;
-	cin>>objectName;
-	struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
-	if(myObjectPermission.canRead){
-		cout<<"Yes you can read this file"<<endl;
-	}	
-	else{
-		cout<<"Access denied"<<endl;
+	int currObjIndex = mySystem->myObjects.currentObjectIndex;
+	if(currObjIndex >=0){
+		string objectName;
+		cout<<"Enter the name of the object you want to read"<<endl;
+		cin>>objectName;
+		struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
+		if(myObjectPermission.canRead){
+			string line;	 
+		    ifstream myfile;
+		    string filePath =  "files/"+objectName+".txt";
+		    myfile.open(filePath.c_str());
+		    cout<<"............................................................................."<<endl;
+		    cout<<"Contents of the File: "<<endl;
+		    while(getline(myfile, line)) {
+		     cout << line << endl;
+		    }
+		    cout<<endl;
+		    cout<<"............................................................................."<<endl;
+		}	
+		else{
+			cout<<"You don't have permissions to read this file "<<endl;
+		}
 	}
+	return ;
+}
+void writeObject(struct system *mySystem){
+	displayAllObjects(mySystem);
+	int currObjIndex = mySystem->myObjects.currentObjectIndex;
+	if(currObjIndex >=0){
+		string objectName;
+		cout<<"Enter the name of the object you want to read"<<endl;
+		cin>>objectName;
+		struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
+		if(myObjectPermission.canWrite){		
+			cout<<"Type 'quit' in a new line to exit"<<endl;
+			string line;
+			ofstream myfile;
+			string filePath =  "files/"+objectName+".txt";
+	  		myfile.open (filePath.c_str());
+		  	do{
+	            getline(cin, line);
+	            if(line != "quit"){
+					myfile <<line<< "\n";            	
+				}
+	        }
+	        while(line != "quit");
+	        myfile.close();
+		}
+		else{
+			cout<<"You don't have permission to write to this file"<<endl;
+		}
+	}
+	return ;
+	
+		
 }
 void setPermission(struct system *mySystem){
 	displayAllObjects(mySystem);
 	string objectName;
-	cout<<"Enter the name of the object you want to read"<<endl;
+	cout<<"Enter the name of the object you want to set the permission"<<endl;
 	cin>>objectName;
-	int permission;
+	string permission = "000";
 	cout<<"Enter the permission: (0-777)"<<endl;
-	if(permission < 0 || permission > 777){
-		cout<<"Invalid permission"<<endl;
-		return;
+	cin>>permission;
+	for(int i =0; i<3; i++){
+		if(permission.substr(i,1) == "")permission[i] = '0';
 	}
+	setUserPermissions(mySystem, objectName, convertPermissionIntToString(permission[2]-'0'));
+	setGroupPermissions(mySystem, objectName, convertPermissionIntToString(permission[1]-'0'));
+	setOwnerPermissions(mySystem, objectName, convertPermissionIntToString(permission[0]-'0'));
+	int objectIndex = getIndexFromSystem(mySystem,"objects", objectName);
+	mySystem->myObjects.objects[objectIndex].currentPermission = permission;
+	cout<<"New Permission Set for the file"<<endl;
 }
-
+void getPermission(struct system *mySystem){
+	displayAllObjects(mySystem);
+	string objectName;
+	cout<<"Enter the name of the object you want to get the permission"<<endl;
+	cin>>objectName;
+	int objectIndex = getIndexFromSystem(mySystem,"objects", objectName);
+	string currentPermission = mySystem->myObjects.objects[objectIndex].currentPermission;
+	cout<<"............................................................................."<<endl;
+	cout<<"Permissions for the file:"<<endl;
+	cout<<"Owner: "<<convertPermissionStringToReadable(currentPermission[0]-'0')<<endl;
+	cout<<"Group: "<<convertPermissionStringToReadable(currentPermission[1]-'0')<<endl;
+	cout<<"Others: "<<convertPermissionStringToReadable(currentPermission[2]-'0')<<endl;
+	cout<<"............................................................................."<<endl;	
+}
 void setObjectPermission(struct system *mySystem){
 	int currIndex = mySystem->myObjects.currentObjectIndex;
 	int i = 0;
+
 	if(currIndex >= 0 ){
 		for(i=0; i< currIndex+1; i++){
 			string objectName =  mySystem->myObjects.objects[i].objectName;
+			int currentOwnerPermission = (mySystem->myObjects.objects[i].currentPermission[0] - '0');
 			int currentGroupPermission = (mySystem->myObjects.objects[i].currentPermission[1] - '0');
 			int currentUserPermission = (mySystem->myObjects.objects[i].currentPermission[2] - '0');
+			setOwnerPermissions(mySystem, objectName, convertPermissionIntToString(currentOwnerPermission));
 			if(currentGroupPermission > 0){
 				setGroupPermissions(mySystem,objectName, convertPermissionIntToString(currentGroupPermission));				
 			}
@@ -811,80 +939,144 @@ int main (){
 			struct user currentUser = getCurrentUserDetails(mySystemPointer);
 			// admin menu
 			if(currentUser.isAdmin && mySystem.authUserId >=0){
+				
 				while(action2 > 0){
 					cout<<"Admin Menu"<<endl;
 					cout<<"1. Add new user/group"<<endl;
 					cout<<"2. Disable/Enable a user/group"<<endl;
-					cout<<"3. Add/Delete user to/grom group"<<endl;
-					cout<<"4. Grant/Revoke users/groups rights"<<endl;
-					cout<<"5. Delete user/group"<<endl;
-					cout<<"6. Read Object"<<endl;
+					cout<<"3. Add/Delete user to/from group"<<endl;
+					cout<<"4. Delete Group/user"<<endl;
+					cout<<"5. Objects management"<<endl;
+					cout<<"6. Access control management"<<endl;
 					cout<<"0. Return"<<endl;
 					cin>>action2;
 					if(action2 == 1){
-						string reply;
-						cout<<"Do you want to add group/user ? (user/group)"<<endl;
-						cin>>reply;
-						if(reply == "group"){
-							addGroupToSystem(mySystemPointer);
+						int actionUserAdd = 1;
+						while(actionUserAdd){
+							cout<<"1. Add User"<<endl;
+							cout<<"2. Add Group"<<endl;
+							cout<<"0. Return"<<endl;
+							cin>>actionUserAdd;
+							if(actionUserAdd == 2){
+								addGroupToSystem(mySystemPointer);
+							}
+							else if(actionUserAdd == 1){
+								addUserToSystem(mySystemPointer);	
+							}
+							else break;
 						}
-						else if(reply == "user"){
-							addUserToSystem(mySystemPointer);	
-						}
-						else break;
 						system("CLS");
 					}
 					if(action2 == 2){
-						string reply;
-						cout<<"Do you want to enable/disable (group/user)"<<endl;
-						cin>>reply;
-						if(reply == "group"){
-							displayAllGroups(mySystemPointer);
+						int actionDisable = 1;
+						while(actionDisable){
+							cout<<"1. Disable Group"<<endl;
+							cout<<"2. Enable Group"<<endl;
+							cout<<"3. Disable User"<<endl;
+							cout<<"4. Enable User"<<endl;
+							cout<<"0. Return"<<endl;
+							cin>>actionDisable;
+
+							if(actionDisable == 1 || actionDisable == 2){
+								displayAllGroups(mySystemPointer);
+								enableOrDisableGroupOrUser(mySystemPointer, "group", actionDisable == 1 ? 1: 0);
+							}
+							else if(actionDisable == 3 || actionDisable == 4){
+								displayAllUsers(mySystemPointer);
+								enableOrDisableGroupOrUser(mySystemPointer, "user", actionDisable == 1 ? 1: 0);
+							}
+							else break;
 						}
-						else if(reply == "user"){
-							displayAllUsers(mySystemPointer);
-						}
-						else break;
-						enableOrDisableGroupOrUser(mySystemPointer, reply);
+						system("CLS");
 					}
 					if(action2 == 3){
-						int index;
 						displayAllGroups(mySystemPointer);
-						cout<<"Enter the Group Id you want to modify"<<endl;
-						cin>>index;
-						string operation;
-						cout<<"Current users in the group"<<endl;
-						listGroupUser(mySystemPointer, index-1);
-						cout<<"Do you want to add or delete a user (add/delete) ?"<<endl;
-						cin>>operation;
-						if(operation == "add"){	
-							addUserToGroup(mySystemPointer, index-1);
-							
+						string groupName;
+						cout<<"Enter the Group name you want to modify"<<endl;
+						cin>>groupName;
+						int index = getIndexFromSystem(mySystemPointer, "groups", groupName);
+						int actionGroupWork = 1;
+						while(actionGroupWork){
+							listGroupUser(mySystemPointer, index);
+							cout<<"1. Add user to Group"<<endl;
+							cout<<"2. Delete user from Group"<<endl;
+							cout<<"0. Return"<<endl;
+							cin>>actionGroupWork;
+							if(actionGroupWork == 1){	
+								addUserToGroup(mySystemPointer, index);
+							}
+							else if (actionGroupWork == 1){
+								deleteUserFromGroup(mySystemPointer, index);
+							}
+							else break;
 						}
-						else if (operation == "delete"){
-							deleteUserFromGroup(mySystemPointer, index-1);
-						}
-						else break;
+						system("CLS");
 					}
-					if(action2 == 0){
-						break;
+					if(action2 == 4){
+						int actionDelete = 1;
+						while(actionDelete){
+							cout<<"1. Delete Group"<<endl;
+							cout<<"2. Delete Users"<<endl;
+							cout<<"0. Return"<<endl;	
+							cin>>actionDelete;	
+							if(actionDelete ==1){
+								displayAllGroups(mySystemPointer);
+								deleteFromSystem(mySystemPointer, "groups");
+							}
+							else if(actionDelete==2){
+								displayAllUsers(mySystemPointer);
+								deleteFromSystem(mySystemPointer,"users");
+							}						
+							else {
+								system("CLS");
+								break;
+							};
+						}
 					}
 					if(action2 == 5){
-						string type;
-						cout<<"Do you want to delete a group or user (group/user)"<<endl;
-						cin>>type;
-						if(type =="group"){
-							displayAllGroups(mySystemPointer);
+						int action3x = 1;
+						while(action3x > 0 ){
+							cout<<"1. Create Object"<<endl;
+							cout<<"2. Read Object"<<endl;
+							cout<<"3. Write Object"<<endl;
+							cout<<"4. Delete Object"<<endl;
+							cout<<"0. Return"<<endl;
+							cin>>action3x;
+							if(action3x == 1){
+								createNewObject(mySystemPointer);
+							}
+							if(action3x == 2){
+								readObject(mySystemPointer);
+							}
+							if(action3x == 3){
+								writeObject(mySystemPointer);
+							}
+							if(action3x == 4){
+								deleteFromSystem(mySystemPointer, "objects");
+							}
+							else {
+								break;
+							};					
 						}
-						else if(type=="user"){
-							displayAllUsers(mySystemPointer);
-						}
-						else break;
-						deleteFromSystem(mySystemPointer, type=="group" ? "groups": "users");
+
 					}
 					if(action2 == 6){
-						readObject(mySystemPointer);
+						int actionAccess = 1;
+						while(actionAccess){
+							cout<<"1. Get Permission"<<endl;
+							cout<<"2. Set Permission"<<endl;
+							cout<<"0. Return"<<endl;
+							cin>>actionAccess;
+							if(actionAccess == 1){
+								getPermission(mySystemPointer);
+							}
+							if(actionAccess == 2){
+								setPermission(mySystemPointer);
+							}
+							else break;
+						}
 					}
+					
 				}
 				
 			}
@@ -892,9 +1084,9 @@ int main (){
 			else {
 				while(action2 > 0 && mySystem.authUserId >=0){
 					cout<<"1. Create Object"<<endl;
-					cout<<"2. Delete Object"<<endl;
-					cout<<"3. Read Object"<<endl;
-					cout<<"4. Execute Object"<<endl;
+					cout<<"2. Read Object"<<endl;
+					cout<<"3. Write Object"<<endl;
+					cout<<"4. Delete Object"<<endl;
 					cout<<"0. Return"<<endl;
 					cin>>action2;
 					if(action2 == 1){
@@ -902,6 +1094,12 @@ int main (){
 					}
 					if(action2 == 2){
 						readObject(mySystemPointer);
+					}
+					if(action2 == 3){
+						writeObject(mySystemPointer);
+					}
+					if(action2 == 4){
+						deleteFromSystem(mySystemPointer, "groups");
 					}
 							
 				}
