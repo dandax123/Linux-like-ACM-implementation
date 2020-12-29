@@ -377,16 +377,18 @@ void enableOrDisableGroupOrUser(struct system * mySystem, string type, int opera
   int currGroupIndex = mySystem -> myGroups.currentGroupIndex;
   int currUserIndex = mySystem -> myUsers.currentUserIndex;
   if (type == "group" && currGroupIndex != -1) {
-    int index;
-    cout << "Enter the " << type << " Id" << endl;
-    cin >> index;
-    mySystem -> myGroups.groups[index - 1].isEnabled = operation;
+    string  groupName;
+    cout << "Enter the " << type << " Name" << endl;
+    cin>> groupName;
+    int index = getIndexFromSystem(mySystem, "groups", groupName);
+    mySystem -> myGroups.groups[index].isEnabled = operation;
     displayAllGroups(mySystemPointer);
   } else if (type == "user" && currUserIndex > 0) {
-    int index;
-    cout << "Enter the " << type << " Id" << endl;
-    cin >> index;
-    mySystem -> myUsers.users[index - 1].isEnabled = operation;
+    string userName;
+    cout << "Enter the user Name" << endl;
+    cin >> userName;
+    int index = getIndexFromSystem(mySystem, "users", userName);
+    mySystem -> myUsers.users[index].isEnabled = operation;
     displayAllUsers(mySystemPointer);
   }
 
@@ -947,10 +949,10 @@ int main() {
           if (action2 == 2) {
             int actionDisable = 1;
             while (actionDisable) {
-              cout << "1. Disable Group" << endl;
-              cout << "2. Enable Group" << endl;
-              cout << "3. Disable User" << endl;
-              cout << "4. Enable User" << endl;
+              cout << "1. Enable Group" << endl;
+              cout << "2. Disable Group" << endl;
+              cout << "3. Enable User" << endl;
+              cout << "4. Disable User" << endl;
               cout << "0. Return" << endl;
               cin >> actionDisable;
 
@@ -959,7 +961,7 @@ int main() {
                 enableOrDisableGroupOrUser(mySystemPointer, "group", actionDisable == 1 ? 1 : 0);
               } else if (actionDisable == 3 || actionDisable == 4) {
                 displayAllUsers(mySystemPointer);
-                enableOrDisableGroupOrUser(mySystemPointer, "user", actionDisable == 1 ? 1 : 0);
+                enableOrDisableGroupOrUser(mySystemPointer, "user", actionDisable >= 3 && actionDisable < 4 ? 1 : 0);
               } else break;
             }
             system("CLS");
