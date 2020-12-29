@@ -582,11 +582,9 @@ void giveAllAdminsUserPermission (int objectIndex, struct system *mySystem) {
 	int currIndex = mySystem->myUsers.currentUserIndex;
 	int i = 0;
 	for(i=0; i< currIndex; i++){
-		cout<<"admins: "<<endl;
 		if(mySystem->myUsers.users[i].isAdmin){
 			addUserPermissionToObject(convertPermissionIntToString(7), mySystem->myUsers.users[i].userName, mySystem->myUsers.users[i].userId, objectIndex, mySystemPointer);
 		}
-		cout<<"done"<<endl;
 	}
 	
 }
@@ -1041,7 +1039,7 @@ int main (){
 					}
 					if(action2 == 5){
 						int action3x = 1;
-						while(action3x > 0 ){
+						while(action3x){
 							cout<<"1. Create Object"<<endl;
 							cout<<"2. Read Object"<<endl;
 							cout<<"3. Write Object"<<endl;
