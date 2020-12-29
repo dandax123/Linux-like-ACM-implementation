@@ -163,9 +163,10 @@ void addUserToSystem(struct system * mySystem, bool isDefaultAdmin = false) {
   } else {
     cout << "User Already exists" << endl;
     cout << "Change the user name" << endl;
+    cout << endl;
     addUserToSystem(mySystem);
   }
-  cout << endl;
+
 }
 
 void addGroupToSystem(struct system * mySystem) {
@@ -185,6 +186,7 @@ void addGroupToSystem(struct system * mySystem) {
   } else {
     cout << "Group Already exists" << endl;
     cout << "Change the group name" << endl;
+    cout<<endl;
     addGroupToSystem(mySystem);
   }
 
@@ -520,6 +522,7 @@ void createNewObject(struct system * mySystem) {
   } else {
     cout << "File Already exists" << endl;
     cout << "Change the file name" << endl;
+    cout<<endl;
     createNewObject(mySystem);
   }
 
