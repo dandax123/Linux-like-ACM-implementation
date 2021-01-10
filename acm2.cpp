@@ -36,12 +36,7 @@ struct user {
   string user_type;
   struct rsa_key rsa_keys;
 };
-struct userPermission {
-  string userId;
-  string userName;
-  int canRead;
-  int canWrite;
-};
+
 
 struct myUsers {
   struct user users[100];
@@ -307,23 +302,7 @@ string gen_id() {
   return tmp_s;
 }
 
-struct userPermission canAccessthisFile(struct system * mySystem, string objectName) {
-  // initialize default permissions
-  struct userPermission isAccessible;
-  isAccessible.canWrite = 0;
-  isAccessible.canRead = 0;
-  struct user currentUser = getCurrentUserDetails(mySystem);
-  isAccessible.userId = currentUser.userId;
-  isAccessible.userName = currentUser.userName;
 
-  int objectIndex = getIndexFromSystem(mySystem, "objects", objectName);
-  // if the current user is the owner of the file
-//  if (currentUser.userId == mySystem -> myObjects.objects[objectIndex].ownerPermission.userId) {
-//    isAccessible.canRead = max(isAccessible.canExecute, mySystem -> myObjects.objects[objectIndex].ownerPermission.canRead);
-//    isAccessible.canWrite = max(isAccessible.canExecute, mySystem -> myObjects.objects[objectIndex].ownerPermission.canWrite);
-//  }
-  return isAccessible;
-}
 bool studentFileExist(struct system *mySystem, string fileName, int userId= 0){
 	struct user currentUser = !userId ? getCurrentUserDetails(mySystem) : mySystem->myUsers.users[userId];	
 	int currIndex = mySystem -> myObjects.currentObjectIndex;
@@ -514,100 +493,10 @@ void addTeacherObject(struct system *mySystem, string fileLocation){
 	    mySystem -> myObjects.objects[newIndex].currentPermission = "777";	
 	}	
 }
-void createNewObject(struct system * mySystem) {
-  struct user currentUser =getCurrentUserDetails(mySystem);
-  string fileName;
-  	cout << "Input the file name that you want to create" << endl;
-  	cin >> fileName;
-  int fileExists = getIndexFromSystem(mySystem, "objects", fileName);
-  if(currentUser.isStudent){
-  	
-  	
-  }
-  if(currentUser.isTeacher){
-  	
-  }
 
-  if (fileExists == -1) {
-  	
-    int newIndex = ++mySystem -> myObjects.currentObjectIndex;
-    string filePath1 = "files/" + fileName;
-    string filePath2 = "files/" + fileName + ".txt";
-    ofstream file(fileName[fileName.length() - 3] != '.' ? filePath2.c_str() : filePath1.c_str());
-    cout << "The file was created succesfully" << endl;
-    struct user objectOwner = mySystem -> myUsers.users[mySystem -> authUserId];
-    mySystem -> myObjects.objects[newIndex].objectName = fileName;
-    mySystem -> myObjects.objects[newIndex].objectId = gen_id();
-   // mySystem -> myObjects.objects[newIndex].objectOwner = objectOwner;
-   // mySystem -> myObjects.objects[newIndex].currentPermission = "766";
-    //setOwnerPermissions(mySystem, fileName, convertPermissionIntToString(7));
-    //setGroupPermissions(mySystem, fileName, convertPermissionIntToString(6));
-    //setUserPermissions(mySystem, fileName, convertPermissionIntToString(6));
-    cout << endl;
-    displayAllObjects(mySystem);
-  } else {
-    cout << "File Already exists" << endl;
-    cout << "Change the file name" << endl;
-    cout << endl;
-    createNewObject(mySystem);
-  }
-}
 
-void readObject(struct system * mySystem) {
-  //displayAllObjects(mySystem);
-  int currObjIndex = mySystem -> myObjects.currentObjectIndex;
-  if (currObjIndex >= 0) {
-    string objectName;
-    cout << "Enter the name of the object you want to read" << endl;
-    cin >> objectName;
-    struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
-    if (myObjectPermission.canRead) {
-      string line;
-      ifstream myfile;
-      string filePath = "files/" + objectName + ".txt";
-      myfile.open(filePath.c_str());
-      cout << "............................................................................." << endl;
-      cout << "Contents of the File: " << endl;
-      while (getline(myfile, line)) {
-        cout << line << endl;
-      }
-      cout << endl;
-      cout << "............................................................................." << endl;
-    } else {
-      cout << "You don't have permissions to read this file " << endl;
-    }
-  }
-  return;
-}
 
-void writeObject(struct system * mySystem) {
-  displayAllObjects(mySystem);
-  int currObjIndex = mySystem -> myObjects.currentObjectIndex;
-  if (currObjIndex >= 0) {
-    string objectName;
-    cout << "Enter the name of the object you want to write to" << endl;
-    cin >> objectName;
-    struct userPermission myObjectPermission = canAccessthisFile(mySystem, objectName);
-    if (myObjectPermission.canWrite) {
-      cout << "Type 'quit' in a new line to exit" << endl;
-      string line;
-      ofstream myfile;
-      string filePath = "files/" + objectName + ".txt";
-      myfile.open(filePath.c_str());
-      do {
-        getline(cin, line);
-        if (line != "quit") {
-          myfile << line << "\n";
-        }
-      }
-      while (line != "quit");
-      myfile.close();
-    } else {
-      cout << "You don't have permission to write to this file" << endl;
-    }
-  }
-  return;
-}
+
 void logout(struct system * mySystem) {
   mySystem -> authUserId = -1;
   cout << "............................................................................." << endl;
