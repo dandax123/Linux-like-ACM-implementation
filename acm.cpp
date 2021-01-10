@@ -715,8 +715,8 @@ struct groupPermission getGroupPermissionForObject(struct system * mySystem, int
       struct groupPermission objectGroupPermission = mySystem -> myObjects.objects[objectIndex].groupPermission.currentGroupPermissions[i];
       if (mySystem -> myGroups.groups[groupIndex].groupId == objectGroupPermission.groupId) {
         isAccessible.canExecute = max(isAccessible.canExecute, objectGroupPermission.canExecute);
-        isAccessible.canRead = max(isAccessible.canExecute, objectGroupPermission.canRead);
-        isAccessible.canWrite = max(isAccessible.canExecute, objectGroupPermission.canWrite);
+        isAccessible.canRead = max(isAccessible.canRead, objectGroupPermission.canRead);
+        isAccessible.canWrite = max(isAccessible.canWrite, objectGroupPermission.canWrite);
       }
     }
   }
@@ -735,8 +735,8 @@ struct userPermission groupPermissionsForObject(struct system * mySystem, string
       if (isUserInGroup(mySystem, i)) {
         struct groupPermission object_i = getGroupPermissionForObject(mySystem, i, objectName);
         isAccessible.canExecute = max(isAccessible.canExecute, object_i.canExecute);
-        isAccessible.canRead = max(isAccessible.canExecute, object_i.canRead);
-        isAccessible.canWrite = max(isAccessible.canExecute, object_i.canWrite);
+        isAccessible.canRead = max(isAccessible.canRead, object_i.canRead);
+        isAccessible.canWrite = max(isAccessible.canWrite, object_i.canWrite);
       }
     } else continue;
   }
@@ -756,8 +756,8 @@ struct userPermission maxPermissionForObjectUser(struct system * mySystem, strin
       struct userPermission objectUserPermission = mySystem -> myObjects.objects[objectIndex].userPermission.currentUserPermissions[i];
       if (currentUser.userId == objectUserPermission.userId) {
         isAccessible.canExecute = max(isAccessible.canExecute, objectUserPermission.canExecute);
-        isAccessible.canRead = max(isAccessible.canExecute, objectUserPermission.canRead);
-        isAccessible.canWrite = max(isAccessible.canExecute, objectUserPermission.canWrite);
+        isAccessible.canRead = max(isAccessible.canRead, objectUserPermission.canRead);
+        isAccessible.canWrite = max(isAccessible.canWrite, objectUserPermission.canWrite);
       }
     }
   }
@@ -777,8 +777,8 @@ struct userPermission canAccessthisFile(struct system * mySystem, string objectN
   if (currentUser.isInGroup) {
     struct userPermission maxGroupPermission = groupPermissionsForObject(mySystem, objectName);
     isAccessible.canExecute = max(isAccessible.canExecute, maxGroupPermission.canExecute);
-    isAccessible.canRead = max(isAccessible.canExecute, maxGroupPermission.canRead);
-    isAccessible.canWrite = max(isAccessible.canExecute, maxGroupPermission.canWrite);
+    isAccessible.canRead = max(isAccessible.canRead, maxGroupPermission.canRead);
+    isAccessible.canWrite = max(isAccessible.canWrite, maxGroupPermission.canWrite);
   }
   //max permissions for users of an object
   struct userPermission maxUserPermission = maxPermissionForObjectUser(mySystem, objectName);
@@ -789,8 +789,8 @@ struct userPermission canAccessthisFile(struct system * mySystem, string objectN
   // if the current user is the owner of the file
   if (currentUser.userId == mySystem -> myObjects.objects[objectIndex].ownerPermission.userId) {
     isAccessible.canExecute = max(isAccessible.canExecute, mySystem -> myObjects.objects[objectIndex].ownerPermission.canExecute);
-    isAccessible.canRead = max(isAccessible.canExecute, mySystem -> myObjects.objects[objectIndex].ownerPermission.canRead);
-    isAccessible.canWrite = max(isAccessible.canExecute, mySystem -> myObjects.objects[objectIndex].ownerPermission.canWrite);
+    isAccessible.canRead = max(isAccessible.canRead, mySystem -> myObjects.objects[objectIndex].ownerPermission.canRead);
+    isAccessible.canWrite = max(isAccessible.canWrite, mySystem -> myObjects.objects[objectIndex].ownerPermission.canWrite);
   }
   return isAccessible;
 }
