@@ -1,10 +1,15 @@
-# include <bits/stdc++.h>
+#include <bits/stdc++.h>
+#include <ctime>
+
 #include <unistd.h>
+
+#include <fstream>
+
+#include <sstream>
 using namespace std;
 struct userPermission canAccessthisFile(struct system * mySystem, string objectName);
 void displayUserDetails(struct system * mySystem, string userName);
 void addUserToSystem(struct system * mySystem, string userType );
-string convertPermissionIntToString(int permit);
 void createNewObject(struct system * mySystem);
 void displayAllObjects(struct system * mySystem);
 void displayUserDetails(struct system * mySystem, string userName);
@@ -16,6 +21,7 @@ void readObject(struct system * mySystem);
 void userLogin(struct system * mySystem);
 void writeObject(struct system * mySystem);
 void logout(struct system * mySystem);
+void listStudents (struct system *mySystem);
 struct rsa_key{
 	long long int private_key;
 	long long int public_key;
@@ -36,10 +42,7 @@ struct userPermission {
   int canRead;
   int canWrite;
 };
-struct objectPermissions {
-  int currentPermission;
-  struct userPermission objectPermissions[100];
-};
+
 struct myUsers {
   struct user users[100];
   int currentUserIndex;
@@ -48,7 +51,8 @@ struct object {
   string objectId;
   struct user objectOwner;
   string objectName;
-  struct objectPermissions permissions;  
+  string filetype;
+  string currentPermission;  
 };
 struct myObjects {
   struct object objects[1000];
@@ -77,6 +81,109 @@ int getIndexFromSystem(struct system * mySystem, string type, string id) {
     }
   }
   return index;
+}
+void listCourseOrTypeObjects(struct system *mySystem, string type){
+  int currIndex = mySystem -> myObjects.currentObjectIndex;
+  int i = 0;
+  cout << "............................................................................." << endl;
+  if (currIndex >= 0) {
+    cout << "No \t Object Name \t Object Owner " << endl;
+    for (i = 0; i < currIndex + 1; i++) {
+    	if(mySystem -> myObjects.objects[i].filetype == type){
+    		string objectName = mySystem -> myObjects.objects[i].objectName;
+	      	string objectOwner = mySystem -> myObjects.objects[i].objectOwner.userName;
+	      	cout << i + 1 << "\t " << objectName << "\t      \t" << objectOwner << endl;		
+		}
+    }
+  } else {
+    cout << "No course object found" << endl;
+  }
+  cout << "............................................................................." << endl;
+  cout << endl;
+}
+void viewCourseOrTeacherObjects(struct system  *mySystem, string type){
+	listCourseOrTypeObjects(mySystem,type);
+	string objectName; 
+	cout<<"Enter the  file name that you want to view"<<endl;
+	cin>>objectName;
+	if(getIndexFromSystem(mySystem, "objects", objectName) >=0){
+		string line;
+      	ifstream myfile;
+	    string filemainpath = type == "course" ? "course_materials/" : "teacher_materials/";
+      	string filePath = filemainpath + objectName + ".txt";
+      	myfile.open(filePath.c_str());
+      	cout << "............................................................................." << endl;
+      	cout << "Contents of the File: " << endl;
+      	while (getline(myfile, line)) {
+       		 cout << line << endl;
+      	}
+      	cout << endl;
+      	cout << "............................................................................." << endl;
+	}else{
+		cout<<"File doesn't exist"<<endl;	
+	}
+	return;
+}
+void writeCourseOrTeacherObjects(struct system  *mySystem, string type){
+	listCourseOrTypeObjects(mySystem,type);
+	string objectName; 
+	cout<<"Enter the  file name that you want to view"<<endl;
+	cin>>objectName;
+	if(getIndexFromSystem(mySystem, "objects", objectName) >=0){
+		string line;
+      	ofstream myfile;
+	    string filemainpath = type == "course" ? "course_materials/" : "teacher_materials/";
+      	string filePath = filemainpath + objectName + ".txt";
+      	myfile.open(filePath.c_str());
+		cout << "Type 'quit' in a new line to exit" << endl;
+	 	do {
+			getline(cin, line);
+			if (line != "quit") {
+			  myfile << line << "\n";
+			}
+		}
+	    while (line != "quit");
+	    myfile.close();
+	    
+	}else{
+		cout<<"File doesn't exist"<<endl;	
+	}
+	return;
+}
+void listStudentObjects(struct system * mySystem, int userId= 0){
+	if(!userId){
+		listStudents(mySystem);
+		string studentName;
+		cout<<"Enter the student Name"<<endl;
+		cin>>studentName;
+		userId = getIndexFromSystem(mySystem, "users", studentName);
+	}
+	if(userId == -1){
+		cout<<"Student don't exist"<<endl;
+		return ;
+	}
+	struct user currentUser = !userId ? getCurrentUserDetails(mySystem) : mySystem->myUsers.users[userId];
+	if(currentUser.isStudent){
+		int currIndex = mySystem -> myObjects.currentObjectIndex;
+		int i = 0;
+		cout << "............................................................................." << endl;
+		if (currIndex >= 0) {
+			cout << "No \t Object Name " << endl;
+			for (i = 0; i < currIndex + 1; i++) {
+				if(mySystem -> myObjects.objects[i].objectOwner.userId == currentUser.userId){
+					string objectName = mySystem -> myObjects.objects[i].objectName;
+					cout << i + 1 << "\t " << objectName << "\t   " << endl;	
+				}
+				else continue;
+			}
+		} else {
+			cout << "No currents objects" << endl;
+		}
+		cout << "............................................................................." << endl;
+		cout << endl;
+	}
+	else cout<<"Current user is not a student"<<endl;
+	return;
 }
 string getUserStatus(struct user user){
 	if(user.isAdmin) return "Admin";
@@ -122,23 +229,24 @@ void userLogin(struct system * mySystem) {
   cout << loggedinState << endl;
 
   if (isLoggedIn) {
-    //displayUserDetails(mySystemPointer, userName);
+    displayUserDetails(mySystem, userName);
   }
 }
 
 void addUserToSystem(struct system * mySystem, string userType) {
   string userName;
-  cout << "Enter the username: ";
+  cout << "Enter the "<<userType<< " name: ";
   cin >> userName;
   int userExists = getIndexFromSystem(mySystem, "users", userName);
   if (userExists == -1) {
     int newIndex = ++mySystem -> myUsers.currentUserIndex;
     mySystem -> myUsers.users[newIndex].userName = userName;
-    cout << "Enter  your password: ";
+    cout << "Enter the "<<userType<< " password: ";
     cin >> mySystem -> myUsers.users[newIndex].password;
     mySystem -> myUsers.users[newIndex].isAdmin = userType=="admin" ? 1: 0;
     mySystem -> myUsers.users[newIndex].isStudent = userType=="student" ? 1: 0;
     mySystem -> myUsers.users[newIndex].isTeacher = userType=="teacher" ? 1: 0;
+    mySystem -> myUsers.users[newIndex].userId = gen_id();
     if(userType == "student"){
       string directory= "./student_materials/" + userName + "_files";
 	  if (mkdir(directory.c_str()) != 0) {
@@ -216,28 +324,212 @@ struct userPermission canAccessthisFile(struct system * mySystem, string objectN
 //  }
   return isAccessible;
 }
-string convertPermissionIntToString(int permit) {
-  string ans = "000";
-  if (permit - 4 >= 0) {
-    ans[0] = '4';
-    permit = permit - 4;
-  }
-  if (permit - 2 >= 0) {
-    ans[1] = '2';
-    permit = permit - 2;
-  }
-  if (permit - 1 >= 0) {
-    ans[2] = '1';
-    permit = permit - 1;
-  }
-  return ans;
+bool studentFileExist(struct system *mySystem, string fileName, int userId= 0){
+	struct user currentUser = !userId ? getCurrentUserDetails(mySystem) : mySystem->myUsers.users[userId];	
+	int currIndex = mySystem -> myObjects.currentObjectIndex;
+	int i = 0;
+	if (currIndex >= 0) {
+		cout << "No \t Object Name " << endl;
+		for (i = 0; i < currIndex + 1; i++) {
+			if(mySystem -> myObjects.objects[i].objectOwner.userId == currentUser.userId && mySystem -> myObjects.objects[i].objectName == fileName){
+				return true;	
+			}
+			else continue;
+		}
+	}
+	return false;
+}
+void addStudentObject(struct system * mySystem, int userId = 0){
+	string fileName;
+	cout<<"Enter the file name of the object you want to create"<<endl;
+	cin>>fileName;
+	struct user currentUser = !userId ? getCurrentUserDetails(mySystem) : mySystem->myUsers.users[userId];
+	if(studentFileExist(mySystem, fileName, userId)){
+		cout<<"File already exists"<<endl;
+		addStudentObject(mySystem);
+		return;
+	}
+	int newIndex = ++mySystem -> myObjects.currentObjectIndex;
+    string filePath1 = "student_materials/"+currentUser.userName + "_files/" + fileName;
+    string filePath2 = "student_materials/"+currentUser.userName + "_files/" + fileName +  ".txt";
+    ofstream file(fileName[fileName.length() - 3] != '.' ? filePath2.c_str() : filePath1.c_str());
+    cout << "The file was created succesfully" << endl;
+	mySystem -> myObjects.objects[newIndex].objectName = fileName;
+    mySystem -> myObjects.objects[newIndex].objectId = gen_id();
+    mySystem -> myObjects.objects[newIndex].objectOwner = currentUser;
+    mySystem -> myObjects.objects[newIndex].filetype = "student";
+    mySystem -> myObjects.objects[newIndex].currentPermission = "777";
+}
+void studentWriteObject(struct system *mySystem, int userId = 0){
+	if(!userId){
+		string studentName;
+		listStudents(mySystem);
+		cout<<"Enter the student name"<<endl;
+		cin>>studentName;
+		userId = getIndexFromSystem(mySystem, "users", studentName);
+		if(!userId){
+			cout<<"User doesn't exist"<<endl; 
+		}
+	}
+	listStudentObjects(mySystem, userId);
+	string objectName;
+	cout<<"Enter the file name you want to modify"<<endl;
+	cin>>objectName;
+	int objectId = getIndexFromSystem(mySystem, "objects", objectName);
+	if(objectId < 0){
+		cout<<"File doesn't exist"<<endl;
+		return;
+	}
+	struct user currentUser = mySystem->myUsers.users[userId];
+	cout << "Type 'quit' in a new line to exit" << endl;
+    string line;
+    ofstream myfile;
+	string filePath = "student_materials/"+currentUser.userName + "_files/" + objectName +  ".txt";
+    myfile.open(filePath.c_str());
+	do {
+		getline(cin, line);
+		if (line != "quit") {
+		  myfile << line << "\n";
+		}
+	}
+    while (line != "quit");
+    myfile.close();
+		
+}
+bool courseOrTeacherFileExist(struct system * mySystem, string id, string type){
+	int currIndex = mySystem -> myObjects.currentObjectIndex;
+    for (int i = 0; i < currIndex + 1; i++) {
+      if (mySystem -> myObjects.objects[i].objectName == id &&  mySystem -> myObjects.objects[i].filetype == type) {
+        return true;
+      }
+    }
+	return false;
+}
+void studentReadObject(struct system *mySystem, int userId = 0){
+	if(!userId){
+		string studentName;
+		listStudents(mySystem);
+		cout<<"Enter the student name"<<endl;
+		cin>>studentName;
+		userId = getIndexFromSystem(mySystem, "users", studentName);
+		if(!userId){
+			cout<<"User doesn't exist"<<endl; 
+		}
+	}
+	listStudentObjects(mySystem, userId);
+	string objectName;
+	cout<<"Enter the file name you want to modify"<<endl;
+	cin>>objectName;
+	int objectId = getIndexFromSystem(mySystem, "objects", objectName);
+	if(objectId < 0){
+		cout<<"File doesn't exist"<<endl;
+		return;
+	}
+	struct user currentUser = mySystem->myUsers.users[userId];
+	cout << "Type 'quit' in a new line to exit" << endl;
+    string line;
+    ifstream myfile;
+	string filePath = "student_materials/"+currentUser.userName + "_files/" + objectName +  ".txt";
+    myfile.open(filePath.c_str());
+    cout << "............................................................................." << endl;
+    cout << "Contents of the File: " << endl;
+    while (getline(myfile, line)) {
+        cout << line << endl;
+    }
+    cout << endl;
+    cout << "............................................................................." << endl;
+    myfile.close();
+		
+}
+void listStudents (struct system *mySystem){
+	int currIndex = mySystem -> myUsers.currentUserIndex;
+	int i = 0;
+	cout << "............................................................................." << endl;
+	if (currIndex > 0) {
+	cout << "No \t Student Name" << endl;
+		for (i = 0; i < currIndex + 1; i++) {
+			if(mySystem -> myUsers.users[i].isStudent){
+				cout << i + 1 << "\t " << mySystem -> myUsers.users[i].userName << endl;				
+			}
+		}
+	} else {
+		cout << "No Students " << endl;
+	}
+	cout << "............................................................................." << endl;
+	cout << endl;
+}
+void addTeacherObject(struct system *mySystem, string fileLocation){
+	int newIndex;
+	string filePath1, filePath2, fileName;
+	struct user currentUser;
+	if(fileLocation == "course_materials"){
+		cout<<"Enter the file name of the object you want to create"<<endl;
+		cin>>fileName;
+		currentUser = getCurrentUserDetails(mySystem);
+		if(courseOrTeacherFileExist(mySystem, fileName, "course")){
+			cout<<"File already exists"<<endl;
+			addTeacherObject(mySystem, fileLocation);
+			return;
+		}
+		newIndex = ++mySystem -> myObjects.currentObjectIndex;
+	    filePath1 = "course_materials/"+ fileName;
+	    filePath2 = "course_materials/"+ fileName +  ".txt";
+	    ofstream file(fileName[fileName.length() - 3] != '.' ? filePath2.c_str() : filePath1.c_str());
+	    cout << "The file was created succesfully" << endl;
+		mySystem -> myObjects.objects[newIndex].objectName = fileName;
+	    mySystem -> myObjects.objects[newIndex].objectId = gen_id();
+	    mySystem -> myObjects.objects[newIndex].objectOwner = currentUser;
+	    mySystem -> myObjects.objects[newIndex].currentPermission = "777";
+	    mySystem -> myObjects.objects[newIndex].filetype = "course";
+	}
+	else if(fileLocation == "student_materials"){
+		listStudents(mySystem);
+		string studentName;
+		cout<<"Enter the student Name "<<endl;
+		cin>>studentName;
+		int studentId = getIndexFromSystem(mySystem, "users", studentName);
+		if(studentId < 0){
+			cout<<"Student doesn't exist"<<endl;
+			return;
+		}
+		addStudentObject(mySystem, studentId);
+	} else{
+		cout<<"Enter the file name of the object you want to create"<<endl;
+		cin>>fileName;
+		currentUser =  getCurrentUserDetails(mySystem);
+		if(courseOrTeacherFileExist(mySystem, fileName, "teacher")){
+			cout<<"File already exists"<<endl;
+			addTeacherObject(mySystem,fileLocation);
+			return;
+		}
+		newIndex = ++mySystem -> myObjects.currentObjectIndex;
+	    filePath1 = "teacher_materials/"+ fileName;
+	    filePath2 = "teacher_materials/"+   fileName +  ".txt";
+	    ofstream file(fileName[fileName.length() - 3] != '.' ? filePath2.c_str() : filePath1.c_str());
+	    cout << "The file was created succesfully" << endl;
+		mySystem -> myObjects.objects[newIndex].objectName = fileName;
+	    mySystem -> myObjects.objects[newIndex].objectId = gen_id();
+	    mySystem -> myObjects.objects[newIndex].objectOwner = currentUser;
+	    mySystem -> myObjects.objects[newIndex].filetype = "teacher";
+	    mySystem -> myObjects.objects[newIndex].currentPermission = "777";	
+	}	
 }
 void createNewObject(struct system * mySystem) {
+  struct user currentUser =getCurrentUserDetails(mySystem);
   string fileName;
-  cout << "Input the file name that you want to create" << endl;
-  cin >> fileName;
+  	cout << "Input the file name that you want to create" << endl;
+  	cin >> fileName;
   int fileExists = getIndexFromSystem(mySystem, "objects", fileName);
+  if(currentUser.isStudent){
+  	
+  	
+  }
+  if(currentUser.isTeacher){
+  	
+  }
+
   if (fileExists == -1) {
+  	
     int newIndex = ++mySystem -> myObjects.currentObjectIndex;
     string filePath1 = "files/" + fileName;
     string filePath2 = "files/" + fileName + ".txt";
@@ -355,12 +647,12 @@ int main() {
   int action1 = 1;
   while (action1 > 0) {
     if (mySystem.authUserId < 0) {
-      cout << endl << "  1. Login" << endl;
+      cout << endl << "1. Login" << endl;
     }
     if (mySystem.authUserId >= 0) {
       cout << "2. Logout" << endl;
     }
-    cout << "  0. Quit" << endl;
+    cout <<"0. Quit" << endl;
     cin >> action1;
     if (action1 <= 0) {
       exit(1);
@@ -374,134 +666,103 @@ int main() {
       if (currentUser.isAdmin && mySystem.authUserId >= 0) {
         while (action2 > 0) {
           cout << "Admin Menu" << endl;
-          cout << "1. Add new user" << endl;
-          cout << "4. Delete a user" << endl;
-          cout << "5. Objects management" << endl;
-          cout << "8. Display User Detail" << endl;
+          cout << "1. Add new Student" << endl;
+          cout<<  "2. Add new Teacher" <<endl;
           cout << "0. Return" << endl;
           cin >> action2;
+          if (action2 == 1) {
+	        addUserToSystem(mySystemPointer, "student");
+	      } else if (action2 == 2) {
+	        addUserToSystem(mySystemPointer, "teacher");
+          } else break;
 
-          if (action2 == 1) // => Add new user/group.
-          {
-            int actionUserAdd = 1;
-            while (actionUserAdd) {
-              cout << "1. Add Student" << endl;
-              cout << "2. Add Teacher" << endl;
-              cout << "0. Return" << endl;
-              cin >> actionUserAdd;
-
-//              if (actionUserAdd == 2) {
-//                addGroupToSystem(mySystemPointer);
-//              } else if (actionUserAdd == 1) {
-//                addUserToSystem(mySystemPointer);
-//              } else break;
-            }
-            system("CLS"); // Clearing screen.
-          }
-
-          if (action2 == 4) {
-            int actionDelete = 1;
-            while (actionDelete) {
-              cout << "2. Delete Users" << endl;
-              cout << "0. Return" << endl;
-              cin >> actionDelete;
-              if (actionDelete == 1) {
-                //displayAllGroups(mySystemPointer);
-                //deleteFromSystem(mySystemPointer, "groups");
-              } else if (actionDelete == 2) {
-                //displayAllUsers(mySystemPointer);
-                //deleteFromSystem(mySystemPointer, "users");
-              } else break;
-            }
-            system("CLS"); // Clearing Screen.
-          }
-          
-          if (action2 == 7) {
-            int actionList = 1;
-            while (actionList) {
-              cout << "1. List All Students" << endl;
-              cout << "2. List All Teachers" << endl;
-              cout << "3. List All Materials" << endl;
-              cout << "0. Return" << endl;
-              cin >> actionList;
-//              if (actionList == 1) {
-//                displayAllUsers(mySystemPointer);
-//              } else if (actionList == 2) {
-//                displayAllGroups(mySystemPointer);
-//              } else if (actionList == 3) {
-//                displayAllObjects(mySystemPointer);
-//              } else break;
-            }
-          }
-          if (action2 == 8) {
-            int actionDisplay = 1;
-            while (actionDisplay) {
-              //displayAllUsers(mySystemPointer);
-              cout << "1. Display User Detail By Name" << endl;
-              cout << "0. Return" << endl;
-              cin >> actionDisplay;
-              if (actionDisplay == 1) {
-                int userList;
-                string userName;
-                cout << endl << "Enter the userName" << endl;
-                cin >> userName;
-                displayUserDetails(mySystemPointer, userName);
-
-              } else break;
-            }
-          }
         }
       }
-
       //student menu
       else if(currentUser.isStudent && mySystem.authUserId >= 0) {
         while (action2 > 0 && mySystem.authUserId >= 0) {
+          cout<<"Student Menu"<<endl;
           cout << "1. View Course Material " << endl;
           cout << "2. Manage Student Materials" << endl;
           cout << "0. Return" << endl;
           cin >> action2;
-//          if (action2 == 1) {
-//            createNewObject(mySystemPointer);
-//          }
-//          if (action2 == 2) {
-//            readObject(mySystemPointer);
-//          }
-//          if (action2 == 3) {
-//            writeObject(mySystemPointer);
-//          }
-//          if (action2 == 4) {
-//            deleteFromSystem(mySystemPointer, "groups");
-//          }
-//        }
+          if (action2 == 1) {	
+			viewCourseOrTeacherObjects(mySystemPointer, "course");
+          }
+          if (action2 == 2) {
+          	int actionManage = 1;
+          	while(actionManage){
+          		cout<<"1. List  Files"<<endl;
+          		cout<<"2. Create File"<<endl;
+          		cout<<"3. Read File"<<endl;
+          		cout<<"4. Write to File"<<endl;
+				cout<<"0. Return"<<endl;
+				cin>> actionManage;
+				if(actionManage == 1){
+					listStudentObjects(mySystemPointer, mySystem.authUserId);		
+				}
+				if(actionManage == 2){
+					addStudentObject(mySystemPointer);
+				}
+				if(actionManage == 3){
+					studentReadObject(mySystemPointer, mySystem.authUserId);
+				}
+				if(actionManage == 4){
+					studentWriteObject(mySystemPointer, mySystem.authUserId);
+				}
+				else break;
+			}
+          }
+ 
 		}
       }
       //teacher menu
       else if(currentUser.isTeacher && mySystem.authUserId >= 0) {
         while (action2 > 0 && mySystem.authUserId >= 0) {
+          cout<<"Teacher Menu"<<endl;
           cout << "1. Manage Course Materials" << endl;
           cout << "2. Manage Teacher Materials" << endl;
-          cout <<"3. Manage Student Materials"<<endl;
+          cout << "3. Manage Student Materials"<<endl;
 		  cout << "0. Return" << endl;	
           cin >> action2;
           if (action2 == 1) {
           	int actionCourse = 1;
           	while(actionCourse){
           		cout<<"1. Create new Course material"<<endl;
-          		cout<<"2. Write/Edit Course Material"<<endl;
+          		cout<<"2. Write Course Material"<<endl;
           		cout<<"3. Read from Course Material"<<endl;
-				cout<<"4. Delete Course Material"<<endl;
-				cout << "0. Return" << endl;
+				cout<<"0. Return" << endl;
+				cin>>actionCourse;
+				if(actionCourse == 1){
+					addTeacherObject(mySystemPointer, "course_materials");
+				}
+				if(actionCourse == 2){
+					writeCourseOrTeacherObjects(mySystemPointer, "course");
+				}
+				if(actionCourse == 3){
+					viewCourseOrTeacherObjects(mySystemPointer, "course");
+				}
+				else  break;
 			}
-            createNewObject(mySystemPointer);
           }
           if (action2 == 2) {
             int actionTeacher =1;
             while(actionTeacher){
           		cout<<"1. Create new Teacher material"<<endl;
-          		cout<<"2. Write/Edit Teacher Material"<<endl;
+          		cout<<"2. Write Teacher Material"<<endl;
           		cout<<"3. Read from Teacher Material"<<endl;
-				cout<<"4. Delete Teacher Material"<<endl;
-				cout << "0. Return" << endl;
+				cout<<"0. Return" << endl;
+				cin>>actionTeacher;
+				if(actionTeacher == 1){
+					addTeacherObject(mySystemPointer, "teacher_materials");
+				}
+				if(actionTeacher == 2){
+					writeCourseOrTeacherObjects(mySystemPointer, "teacher");
+				}
+				if(actionTeacher == 3){
+					viewCourseOrTeacherObjects(mySystemPointer, "teacher");
+				}
+				else break;
 			}
           }
           if(action2 == 3){
@@ -509,7 +770,35 @@ int main() {
           	while(actionStudent){
           		cout<<"1. List Students"<<endl;
           		cout<<"2. Manage Student Material"<<endl;
-          		cout << "0. Return" << endl;
+          		cout<<"0. Return" << endl;
+          		cin>>actionStudent;
+          		if(actionStudent == 1){
+          			listStudents(mySystemPointer);
+				}
+				if(actionStudent == 2){
+          			int actionManage = 1;
+		          	while(actionManage){
+		          		cout<<"1. List student files"<<endl;
+		          		cout<<"2. Create student file"<<endl;
+		          		cout<<"3. Read student file"<<endl;
+		          		cout<<"4. Write to a student file"<<endl;
+						cout<<"0. Return"<<endl;
+						cin>> actionManage;
+						if(actionManage == 1){
+							listStudentObjects(mySystemPointer);		
+						}
+						if(actionManage == 2){
+							addTeacherObject(mySystemPointer, "student_materials");
+						}
+						if(actionManage == 3){
+							studentReadObject(mySystemPointer);
+						}
+						if(actionManage == 4){
+							studentWriteObject(mySystemPointer);
+						}
+						else break;
+					}
+				}
 			}
 		  }
     	}
