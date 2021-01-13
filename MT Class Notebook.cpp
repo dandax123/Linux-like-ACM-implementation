@@ -120,7 +120,6 @@ void viewCourseOrTeacherObjects(struct system * mySystem, string type) {
     string filemainpath = type == "course" ? "course_materials/" : "teacher_materials/";
     string filePath = filemainpath + objectName + ".txt";
     myfile.open(filePath.c_str());
-    struct user currentUser = getCurrentUserDetails(mySystem);
     cout << "............................................................................." << endl;
     cout << "Contents of the File: " << endl;
     while (getline(myfile, line)) {
@@ -260,7 +259,7 @@ void addUserToSystem(struct system * mySystem, string userType) {
     mySystem -> myUsers.users[newIndex].isStudent = userType == "student" ? 1 : 0;
     mySystem -> myUsers.users[newIndex].isTeacher = userType == "teacher" ? 1 : 0;
     mySystem -> myUsers.users[newIndex].userId = gen_id();
-    mySystem -> myUsers.users[newIndex].rsa_keys.private_key = (int)(1 + (rand() % (24 + 1)));
+    mySystem -> myUsers.users[newIndex].rsa_keys.private_key = (int)(1 + (rand() % (23 + 1)));
     cout << mySystem -> myUsers.users[newIndex].rsa_keys.private_key << endl;
     if (userType == "student") {
       string directory = "./student_materials/" + userName + "_files";
@@ -566,45 +565,57 @@ void displayAllObjects(struct system * mySystem) {
 
 struct system mySystem = createSystem();
 struct system * mySystemPointer = & mySystem;
-string encryptMessage(string text, int s) {
-  string result = "";
-
-  for (int i = 0; i < text.length(); i++) {
-
-    // apply transformation to each character 
-    // Encrypt Uppercase letters 
-    if (isupper(text[i]))
-      result += char(int(text[i] + s - 65) % 26 + 65);
-
-    // Encrypt Lowercase letters 
-    else
-      result += char(int(text[i] + s - 97) % 26 + 97);
-  }
-
+string encryptMessage(string message, int key) {
+  	char ch;
+	for(int i = 0; message[i] != '\0'; ++i){
+		ch = message[i];
+		if(!isalpha(message[i])){
+			continue;
+		}
+		if(isspace(message[i])){
+			message[i] = ' ';
+		}
+		else if(ch >= 'a' && ch <= 'z'){
+			message[i] = (((message[i] - 97) + key) % 26) + 97;
+		}
+		else if(ch >= 'A' && ch <= 'Z'){
+			message[i] = (((message[i] - 65) + key) % 26) + 65;
+		}
+	}
   // Return the resulting string 
-  return result;
+  return message;
 }
 
-string decryptMessage(string text, int s) {
-  string result = "";
-
-  // traverse text 
-  for (int i = 0; i < text.length(); i++) {
-    // apply transformation to each character 
-    // Encrypt Uppercase letters 
-    if (isupper(text[i]))
-      result += char(int(text[i] - (s + 65) ) % 26 + 65);
-    // Encrypt Lowercase letters 
-    else
-      result += char(int(text[i] - (s + 97)) % 26 + 97);
-  }
+string decryptMessage(string message, int key) {
+	char ch;
+  for(int i = 0; message[i] != '\0'; ++i){
+  		ch = message[i];
+		if(!isalpha(message[i])){
+			continue;
+		}
+		else if(isspace(message[i])){
+			message[i] = ' ';
+		}
+		else if(ch >= 'a' && ch <= 'z'){
+			message[i] = ((( message[i] - (key - 85 ))  % 26) + 97);
+		}
+		else if(ch >= 'A' && ch <= 'Z'){
+			message[i] = ((( message[i] - (key - 65)) % 26) + 65);
+		}
+	}
 
   // Return the resulting string 
-  return result;
+  return message;
 }
 
 int main() {
-
+//	for(char a='a'; a <= 'z'; a++){
+//		string str(1,a);
+//		string test = encryptMessage(str, 24);
+//		string test2 = decryptMessage(test, 24);
+//		cout<<"Original: "<<a<<" Encrypted: "<<test<<" Decrypted: "<<test2<<endl;
+//	}
+	
   cout << "\t\t\t\t\t## Welcome to the M.T. Class Notebook-like system ##" << endl;
   cout << "\nSystem Description:\n\t\t We build a simple M.T. Class Notebook like system,\n";
   cout << "where it have 3 types of actors, System Adminstrator, Teachers, and Students." << endl;
