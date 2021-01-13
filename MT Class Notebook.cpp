@@ -114,16 +114,19 @@ void viewCourseOrTeacherObjects(struct system * mySystem, string type) {
   string objectName;
   cout << "Enter the file name that you want to view" << endl;
   cin >> objectName;
-  if (getIndexFromSystem(mySystem, "objects", objectName) >= 0) {
+  int objectId = getIndexFromSystem(mySystem, "objects", objectName);
+  if (objectId >= 0) {
     string line;
     ifstream myfile;
     string filemainpath = type == "course" ? "course_materials/" : "teacher_materials/";
     string filePath = filemainpath + objectName + ".txt";
     myfile.open(filePath.c_str());
+    int pk = mySystem->myObjects.objects[objectId].objectOwner.rsa_keys.private_key;
     cout << "............................................................................." << endl;
     cout << "Contents of the File: " << endl;
     while (getline(myfile, line)) {
-      cout << line << endl;
+		string decryptedLine = decryptMessage(line, pk);
+  		cout << decryptedLine << endl;
     }
     cout << endl;
     cout << "............................................................................." << endl;
@@ -137,19 +140,22 @@ void writeCourseOrTeacherObjects(struct system * mySystem, string type) {
   listCourseOrTypeObjects(mySystem, type);
   string objectName;
   cout << "Enter the file name that you want to modify" << endl;
-  cin >> objectName;
-
-  if (getIndexFromSystem(mySystem, "objects", objectName) >= 0) {
+  cin >> objectName; 
+  int objectId = getIndexFromSystem(mySystem, "objects", objectName);
+  if ( objectId >= 0) {
     string line;
     ofstream myfile;
     string filemainpath = type == "course" ? "course_materials/" : "teacher_materials/";
     string filePath = filemainpath + objectName + ".txt";
-    myfile.open(filePath.c_str());
+
+    myfile.open(filePath.c_str(), std::ios_base::app);
     cout << "Type 'quit' in a new line to exit" << endl;
-    do {
+    int pk = mySystem->myObjects.objects[objectId].objectOwner.rsa_keys.private_key;
+	do {
       getline(cin, line);
       if (line != "quit") {
-        myfile << line << "\n";
+      	string encryptedLine = encryptMessage(line, pk);
+        myfile << encryptedLine << "\n";
       }
     }
     while (line != "quit");
@@ -385,7 +391,7 @@ void studentWriteObject(struct system * mySystem, int userId = 0) {
   string line;
   ofstream myfile;
   string filePath = "student_materials/" + currentUser.userName + "_files/" + objectName + ".txt";
-  myfile.open(filePath.c_str());
+  myfile.open(filePath.c_str(), std::ios_base::app);
   do {
     getline(cin, line);
     if (line != "quit") {
