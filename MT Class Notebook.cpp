@@ -266,7 +266,6 @@ void addUserToSystem(struct system * mySystem, string userType) {
     mySystem -> myUsers.users[newIndex].isTeacher = userType == "teacher" ? 1 : 0;
     mySystem -> myUsers.users[newIndex].userId = gen_id();
     mySystem -> myUsers.users[newIndex].rsa_keys.private_key = (int)(1 + (rand() % (23 + 1)));
-    cout << mySystem -> myUsers.users[newIndex].rsa_keys.private_key << endl;
     if (userType == "student") {
       string directory = "./student_materials/" + userName + "_files";
       if (mkdir(directory.c_str()) != 0) {
